@@ -1,0 +1,156 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+@tailwind variants;
+@import '../../../../vendor/filament/filament/resources/css/base.css';
+
+@config './tailwind.config.js';
+
+/*
+|--------------------------------------------------------------------------
+| Institute Theme — colors come from config/theme.php (CSS variables are
+| injected by ThemePlugin). Change config/theme.php and rebuild to re-theme.
+|--------------------------------------------------------------------------
+*/
+
+:root {
+    --inst-primary: #00B7EB;
+    --inst-grad-from: #00B7EB;
+    --inst-grad-to: #2DD4BF;
+    --inst-sidebar-bg: #0F172A;
+    --inst-sidebar-text: #CBD5E1;
+}
+
+/* ---------- Login / auth pages: neutral, brand accent only ---------- */
+.fi-simple-layout {
+    background:
+        radial-gradient(900px 480px at 50% -12%, color-mix(in srgb, var(--inst-primary) 9%, transparent), transparent 60%),
+        #f8fafc;
+}
+
+.dark .fi-simple-layout {
+    background:
+        radial-gradient(900px 480px at 50% -12%, color-mix(in srgb, var(--inst-primary) 12%, transparent), transparent 60%),
+        #020617;
+}
+
+.fi-simple-layout .fi-simple-main {
+    @apply rounded-2xl shadow-xl shadow-slate-950/10;
+}
+
+/* ---------- Topbar: gradient hairline + frosted background ---------- */
+.fi-topbar {
+    background: linear-gradient(180deg, rgba(255, 255, 255, 0.85), rgba(255, 255, 255, 0.6));
+    backdrop-filter: blur(12px);
+    border-bottom: 1px solid transparent;
+    border-image: linear-gradient(90deg, var(--inst-grad-from), var(--inst-grad-to)) 1;
+}
+
+/* ---------- Sidebar (dark) ---------- */
+.fi-sidebar {
+    background: linear-gradient(180deg, var(--inst-sidebar-bg) 0%, #1E293B 100%);
+    color: var(--inst-sidebar-text);
+}
+
+.fi-sidebar .fi-sidebar-header .fi-brand,
+.fi-sidebar .fi-sidebar-item-label,
+.fi-sidebar .fi-sidebar-group-label {
+    color: var(--inst-sidebar-text);
+}
+
+.fi-sidebar .fi-sidebar-item a {
+    border-radius: 0.625rem;
+    transition: background 0.15s ease, color 0.15s ease;
+}
+
+.fi-sidebar .fi-sidebar-item a:hover {
+    background: rgba(255, 255, 255, 0.08);
+    color: #fff;
+}
+
+.fi-sidebar .fi-sidebar-item a.fi-active {
+    background: linear-gradient(90deg, var(--inst-grad-from), var(--inst-grad-to));
+    color: #fff;
+    box-shadow: 0 8px 18px -8px rgba(0, 183, 235, 0.6);
+}
+
+.fi-sidebar .fi-sidebar-item a.fi-active .fi-sidebar-item-icon {
+    color: #fff;
+}
+
+/* ---------- Brand gradient dot ---------- */
+.inst-brand-dot {
+    width: 34px;
+    height: 34px;
+    border-radius: 10px;
+    background: linear-gradient(135deg, var(--inst-grad-from), var(--inst-grad-to));
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    color: #fff;
+    box-shadow: 0 8px 16px -6px rgba(0, 183, 235, 0.5);
+}
+
+/* ---------- Global accents ---------- */
+.fi-wi-stats-overview-stat .fi-wi-stats-overview-stat-icon {
+    background: linear-gradient(135deg, var(--inst-grad-from), var(--inst-grad-to));
+    color: #fff;
+}
+
+/* Primary buttons get a subtle gradient */
+.fi-btn-color-primary.fi-btn-fill-solid,
+.fi-btn-color-primary.fi-btn-fill-solid:hover {
+    background-image: linear-gradient(135deg, var(--inst-grad-from), var(--inst-grad-to));
+    border: none;
+    box-shadow: 0 10px 20px -10px rgba(0, 183, 235, 0.55);
+}
+
+/* ---------- File upload: neutral system-like items (no green glow) ---------- */
+.fi-fo-file-upload .filepond--item-panel,
+.fi-fo-file-upload [data-filepond-item-state='processing-complete'] .filepond--item-panel,
+.fi-fo-file-upload [data-filepond-item-state*='processing'] .filepond--item-panel {
+    background-color: rgb(var(--gray-100));
+    box-shadow: none;
+    border-radius: 0.75rem;
+}
+
+.fi-fo-file-upload .filepond--image-preview-overlay-success {
+    color: rgb(var(--primary-500));
+}
+
+.fi-fo-file-upload .filepond--file-status-indicator,
+.fi-fo-file-upload .filepond--progress-indicator {
+    color: rgb(var(--primary-500));
+}
+
+.fi-fo-file-upload .filepond--file-status-indicator svg,
+.fi-fo-file-upload .filepond--progress-indicator svg {
+    fill: rgb(var(--primary-500));
+    stroke: rgb(var(--primary-500));
+}
+
+/* Locale switcher */
+.locale-switcher select {
+    cursor: pointer;
+}
+
+/* ---------- Scrollbar ---------- */
+::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+}
+
+::-webkit-scrollbar-thumb {
+    background: color-mix(in srgb, var(--inst-primary) 45%, transparent);
+    border-radius: 9999px;
+}
+
+::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+/* x-cloak (Alpine pre-init) */
+[x-cloak] {
+    display: none !important;
+}
+

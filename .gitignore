@@ -1,0 +1,35 @@
+# Environment & sensitive files
+.env
+.env.*
+!.env.example
+
+# Dependencies
+node_modules/
+vendor/
+
+# Storage & Logs
+storage/*.key
+storage/logs/*.log
+storage/pail/
+public/storage
+public/build
+public/hot
+
+# SQLite databases
+*.sqlite
+*.sqlite-journal
+
+# IDE & Editor files
+.idea/
+.vscode/
+.opencode/
+.DS_Store
+Thumbs.db
+.~lock.*
+
+# PHP / Composer / Node caches
+.phpunit.result.cache
+.phpunit.cache
+_ide_helper.php
+Homestead.json
+Homestead.yaml
