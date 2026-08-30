@@ -648,7 +648,7 @@ class ReportService
      * accountStatement() so the statement page, print, and tests treat
      * account-mode and party-mode uniformly.
      */
-    public function partyLedger(string $partyType, int $partyId, ?\Illuminate\Support\Carbon $from = null, ?\Illuminate\Support\Carbon $to = null): array
+    public function partyLedger(string $partyType, int $partyId, ?\Illuminate\Support\Carbon $from = null, ?\Illuminate\Support\Carbon $to = null, string $staffMode = 'advances'): array
     {
         $party = match ($partyType) {
             'student' => \App\Models\Student::query()->withTrashed()->find($partyId),
@@ -667,17 +667,19 @@ class ReportService
         // balanceDir -1 = payable-style (balance = credit − debit).
         $sides = match ($partyType) {
             'student' => ['charge' => [1, 1], 'payment' => [-1, 1], 'refund' => [1, 1]],
-            'staff' => ['advance' => [1, 1], 'repayment' => [-1, 1], 'deduction' => [-1, 1], 'salary' => [-1, 0]],
+            'staff' => $staffMode === 'comprehensive'
+                ? ['advance' => [1, 1], 'salary' => [1, 1], 'repayment' => [-1, 1], 'deduction' => [-1, 1], 'salary_entitlement' => [-1, 1]]
+                : ['advance' => [1, 1], 'repayment' => [-1, 1], 'deduction' => [-1, 1]],
             'supplier' => ['purchase' => [-1, -1], 'payment' => [1, -1]],
             'other' => ['out' => [1, 1], 'in' => [-1, 1]],
         };
 
         $cutoff = $from?->toDateString();
 
-        $rows = $this->partyRows($partyType, $partyId, $from, $to);
+        $rows = $this->partyRows($partyType, $partyId, $from, $to, $staffMode);
         $opening = 0.0;
         if ($cutoff !== null) {
-            $opening = $this->partyRows($partyType, $partyId, null, \Illuminate\Support\Carbon::parse($cutoff)->subDay())
+            $opening = $this->partyRows($partyType, $partyId, null, \Illuminate\Support\Carbon::parse($cutoff)->subDay(), $staffMode)
                 ->sum(function (array $r) use ($sides): float {
                     [$side, $balanceDir] = $sides[$r['type']] ?? [0, 1];
 
@@ -719,6 +721,7 @@ class ReportService
             'closing' => $running,
             'from' => $from?->toDateString(),
             'to' => $to?->toDateString(),
+            'staff_mode' => $staffMode,
         ];
     }
 
@@ -726,7 +729,7 @@ class ReportService
      * Raw party register rows (pre-sign), sorted by date. Supplier rows merge
      * stock-in purchases (StockMovement) with payments (SupplierTransaction).
      */
-    private function partyRows(string $partyType, int $partyId, ?\Illuminate\Support\Carbon $from, ?\Illuminate\Support\Carbon $to): \Illuminate\Support\Collection
+    private function partyRows(string $partyType, int $partyId, ?\Illuminate\Support\Carbon $from = null, ?\Illuminate\Support\Carbon $to = null, string $staffMode = 'advances'): \Illuminate\Support\Collection
     {
         $inWindow = function ($query) use ($from, $to) {
             return $query
@@ -753,19 +756,7 @@ class ReportService
                     'amount' => (float) $t->amount,
                     'balanceDirection' => 1,
                 ]),
-            'staff' => $inWindow(\App\Models\StaffTransaction::query()
-                ->where('staff_id', $partyId)->whereNull('voided_at'))
-                ->get()
-                ->map(fn ($t): array => [
-                    'id' => $t->id,
-                    'type' => $t->type,
-                    'date' => $t->date,
-                    'description' => $t->description ?: ($t->type === 'salary' ? __('general.salary').($t->salary_month ? " — {$t->salary_month}" : '') : __("general.{$t->type}")),
-                    'reference' => $reference($t),
-                    'counterparty' => $this->partyCounterpart($t->method),
-                    'amount' => (float) $t->amount,
-                    'balanceDirection' => 1,
-                ]),
+            'staff' => $this->staffPartyRows($partyId, $from, $to, $staffMode),
             'other' => $inWindow(\App\Models\OtherPeopleTransaction::query()
                 ->where('other_person_id', $partyId)->whereNull('voided_at'))
                 ->get()
@@ -822,6 +813,67 @@ class ReportService
     private function partyCounterpart(?string $method): string
     {
         return $method ? __("general.method_{$method}") : '—';
+    }
+
+    private function staffPartyRows(int $partyId, ?\Illuminate\Support\Carbon $from, ?\Illuminate\Support\Carbon $to, string $staffMode): \Illuminate\Support\Collection
+    {
+        $query = \App\Models\StaffTransaction::query()
+            ->where('staff_id', $partyId)
+            ->whereNull('voided_at')
+            ->when($from, fn ($q) => $q->whereDate('date', '>=', $from->toDateString()))
+            ->when($to, fn ($q) => $q->whereDate('date', '<=', $to->toDateString()));
+
+        if ($staffMode !== 'comprehensive') {
+            $query->whereIn('type', ['advance', 'repayment', 'deduction']);
+        }
+
+        $transactions = $query->orderBy('date')->orderBy('id')->get();
+
+        $reference = fn ($row): ?string => $row->receipt_no ?? $row->reference ?? $row->transaction_ref ?? null;
+
+        if ($staffMode !== 'comprehensive') {
+            return $transactions->map(fn ($t): array => [
+                'id' => $t->id,
+                'type' => $t->type,
+                'date' => $t->date,
+                'description' => $t->description ?: __("general.{$t->type}"),
+                'reference' => $reference($t),
+                'counterparty' => $this->partyCounterpart($t->method),
+                'amount' => (float) $t->amount,
+                'balanceDirection' => 1,
+            ]);
+        }
+
+        $rows = collect();
+        $entitlementIdCounter = 2_000_000_000;
+
+        foreach ($transactions as $t) {
+            if ($t->type === 'salary') {
+                $rows->push([
+                    'id' => $entitlementIdCounter++,
+                    'type' => 'salary_entitlement',
+                    'date' => $t->date,
+                    'description' => __('general.salary_entitlement').($t->salary_month ? " — {$t->salary_month}" : ''),
+                    'reference' => $reference($t),
+                    'counterparty' => __('general.account_type_expense'),
+                    'amount' => (float) $t->amount,
+                    'balanceDirection' => 1,
+                ]);
+            }
+
+            $rows->push([
+                'id' => $t->id,
+                'type' => $t->type,
+                'date' => $t->date,
+                'description' => $t->description ?: ($t->type === 'salary' ? __('general.salary').($t->salary_month ? " — {$t->salary_month}" : '') : __("general.{$t->type}")),
+                'reference' => $reference($t),
+                'counterparty' => $this->partyCounterpart($t->method),
+                'amount' => (float) $t->amount,
+                'balanceDirection' => 1,
+            ]);
+        }
+
+        return $rows->sortBy(fn (array $r): string => $r['date']->format('Y-m-d').sprintf('%08d', $r['id']))->values();
     }
 
     /**

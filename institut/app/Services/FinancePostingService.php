@@ -24,7 +24,7 @@ class FinancePostingService
     ) {
     }
 
-    public function placeAccount(?string $method, ?int $bankId = null, ?int $walletId = null): Account
+    public function placeAccount(?string $method, ?int $bankId = null, ?int $walletId = null, ?int $cashboxId = null): Account
     {
         if (in_array($method, ['bank', 'transfer', 'cheque'], true) && $bankId) {
             $bank = \App\Models\Bank::find($bankId);
@@ -38,6 +38,12 @@ class FinancePostingService
                 return $this->accounts->ensureForPlace($wallet);
             }
         }
+        if ($cashboxId) {
+            $cashbox = \App\Models\Cashbox::find($cashboxId);
+            if ($cashbox) {
+                return $this->accounts->ensureForPlace($cashbox);
+            }
+        }
 
         return $this->accounts->cashAccount();
     }
@@ -48,7 +54,7 @@ class FinancePostingService
             return; // billing rows only (cash basis)
         }
 
-        $place = $this->placeAccount($transaction->method, $transaction->bank_id, $transaction->wallet_id);
+        $place = $this->placeAccount($transaction->method, $transaction->bank_id, $transaction->wallet_id, $transaction->cashbox_id);
         $income = $transaction->incomeAccount ?? $this->accounts->account(AccountService::CODE_INCOME_COURSE_FEES);
 
         if ($transaction->type === 'payment') {
@@ -78,29 +84,77 @@ class FinancePostingService
         }
     }
 
+    public function postPayrollApproval(\App\Models\StaffPayrollPeriod $period): void
+    {
+        $gross = (float) $period->gross_salary;
+        $net = (float) $period->net_salary;
+        $advanceDeduction = (float) $period->advance_deduction_amount;
+        $penalties = (float) $period->penalties_amount;
+
+        if ($gross <= 0 && $net <= 0) {
+            return;
+        }
+
+        $salaryExpense = $this->accounts->account(AccountService::CODE_EXPENSE_SALARIES);
+        $salaryPayable = $this->accounts->account(AccountService::CODE_STAFF_PAYABLE);
+        $staffAdvances = $this->accounts->account(AccountService::CODE_STAFF_ADVANCES);
+        $penaltyIncome = $this->accounts->account(AccountService::CODE_PENALTY_INCOME);
+
+        $lines = [
+            ['account_id' => $salaryExpense->id, 'debit' => $gross],
+            ['account_id' => $salaryPayable->id, 'credit' => $net, 'party_type' => 'App\\Models\\Staff', 'party_id' => $period->staff_id],
+        ];
+
+        if ($advanceDeduction > 0) {
+            $lines[] = ['account_id' => $staffAdvances->id, 'credit' => $advanceDeduction, 'party_type' => 'App\\Models\\Staff', 'party_id' => $period->staff_id];
+        }
+
+        if ($penalties > 0) {
+            $lines[] = ['account_id' => $penaltyIncome->id, 'credit' => $penalties];
+        }
+
+        $this->journal->post(
+            lines: $lines,
+            date: $period->end_date ? $period->end_date->toDateString() : now()->toDateString(),
+            description: __('general.payroll_approval').' — '.$period->staff?->name.' ['.$period->salary_month.']',
+            reference: 'payroll-'.$period->salary_month.'-'.$period->staff_id,
+            documentType: \App\Models\StaffPayrollPeriod::class,
+            documentId: $period->id,
+        );
+    }
+
     public function postStaffTransaction(StaffTransaction $transaction): void
     {
-        $place = $this->placeAccount($transaction->method, $transaction->bank_id, $transaction->wallet_id);
+        $place = $this->placeAccount($transaction->method, $transaction->bank_id, $transaction->wallet_id, $transaction->cashbox_id);
+        $salaryPayable = $this->accounts->account(AccountService::CODE_STAFF_PAYABLE);
 
-        $lines = match ($transaction->type) {
-            'salary' => [
-                ['account_id' => $this->accounts->account(AccountService::CODE_EXPENSE_SALARIES)->id, 'debit' => $transaction->amount],
-                ['account_id' => $place->id, 'credit' => $transaction->amount, 'party_type' => $transaction->staff_type, 'party_id' => $transaction->staff_id],
-            ],
-            'advance' => [
-                ['account_id' => $this->accounts->account(AccountService::CODE_STAFF_ADVANCES)->id, 'debit' => $transaction->amount],
-                ['account_id' => $place->id, 'credit' => $transaction->amount, 'party_type' => $transaction->staff_type, 'party_id' => $transaction->staff_id],
-            ],
-            'repayment' => [
-                ['account_id' => $place->id, 'debit' => $transaction->amount, 'party_type' => $transaction->staff_type, 'party_id' => $transaction->staff_id],
-                ['account_id' => $this->accounts->account(AccountService::CODE_STAFF_ADVANCES)->id, 'credit' => $transaction->amount],
-            ],
-            'deduction' => [
-                ['account_id' => $this->accounts->account(AccountService::CODE_EXPENSE_SALARIES)->id, 'debit' => $transaction->amount],
-                ['account_id' => $this->accounts->account(AccountService::CODE_STAFF_ADVANCES)->id, 'credit' => $transaction->amount, 'party_type' => $transaction->staff_type, 'party_id' => $transaction->staff_id],
-            ],
-            default => [],
-        };
+        $lines = [];
+
+        if ($transaction->type === 'salary') {
+            $lines[] = ['account_id' => $salaryPayable->id, 'debit' => $transaction->amount, 'party_type' => $transaction->staff_type, 'party_id' => $transaction->staff_id];
+            $lines[] = ['account_id' => $place->id, 'credit' => $transaction->amount];
+
+            if ($transaction->penalty_amount > 0) {
+                $penaltyIncome = $this->accounts->account(AccountService::CODE_PENALTY_INCOME);
+                $lines[] = ['account_id' => $salaryPayable->id, 'debit' => $transaction->penalty_amount];
+                $lines[] = ['account_id' => $penaltyIncome->id, 'credit' => $transaction->penalty_amount];
+            }
+
+            if ($transaction->advance_deduction_amount > 0) {
+                $staffAdvances = $this->accounts->account(AccountService::CODE_STAFF_ADVANCES);
+                $lines[] = ['account_id' => $salaryPayable->id, 'debit' => $transaction->advance_deduction_amount];
+                $lines[] = ['account_id' => $staffAdvances->id, 'credit' => $transaction->advance_deduction_amount, 'party_type' => $transaction->staff_type, 'party_id' => $transaction->staff_id];
+            }
+        } elseif ($transaction->type === 'advance') {
+            $lines[] = ['account_id' => $this->accounts->account(AccountService::CODE_STAFF_ADVANCES)->id, 'debit' => $transaction->amount];
+            $lines[] = ['account_id' => $place->id, 'credit' => $transaction->amount, 'party_type' => $transaction->staff_type, 'party_id' => $transaction->staff_id];
+        } elseif ($transaction->type === 'repayment') {
+            $lines[] = ['account_id' => $place->id, 'debit' => $transaction->amount, 'party_type' => $transaction->staff_type, 'party_id' => $transaction->staff_id];
+            $lines[] = ['account_id' => $this->accounts->account(AccountService::CODE_STAFF_ADVANCES)->id, 'credit' => $transaction->amount];
+        } elseif ($transaction->type === 'deduction') {
+            $lines[] = ['account_id' => $salaryPayable->id, 'debit' => $transaction->amount];
+            $lines[] = ['account_id' => $this->accounts->account(AccountService::CODE_STAFF_ADVANCES)->id, 'credit' => $transaction->amount, 'party_type' => $transaction->staff_type, 'party_id' => $transaction->staff_id];
+        }
 
         if (empty($lines)) {
             return;
@@ -118,7 +172,7 @@ class FinancePostingService
 
     public function postExpense(Expense $expense): void
     {
-        $place = $this->placeAccount($expense->payment_method, $expense->bank_id, $expense->wallet_id);
+        $place = $this->placeAccount($expense->payment_method, $expense->bank_id, $expense->wallet_id, $expense->cashbox_id);
         $expenseAccount = $expense->category?->account_id
             ? Account::find($expense->category->account_id)
             : $this->accounts->account(AccountService::CODE_EXPENSE_OTHER);
@@ -166,7 +220,7 @@ class FinancePostingService
             return;
         }
 
-        $place = $this->placeAccount($movement->method ?? 'cash', $movement->bank_id, $movement->wallet_id);
+        $place = $this->placeAccount($movement->method ?? 'cash', $movement->bank_id, $movement->wallet_id, $movement->cashbox_id);
         $income = $this->accounts->account(
             $movement->book_id ? AccountService::CODE_INCOME_BOOKS : AccountService::CODE_INCOME_ITEMS
         );
@@ -191,7 +245,7 @@ class FinancePostingService
             return;
         }
 
-        $place = $this->placeAccount($transaction->method, $transaction->bank_id, $transaction->wallet_id);
+        $place = $this->placeAccount($transaction->method, $transaction->bank_id, $transaction->wallet_id, $transaction->cashbox_id);
 
         $this->journal->post(
             lines: [
@@ -208,7 +262,7 @@ class FinancePostingService
 
     public function postOtherPersonTransaction(OtherPeopleTransaction $transaction): void
     {
-        $place = $this->placeAccount($transaction->method, $transaction->bank_id, $transaction->wallet_id);
+        $place = $this->placeAccount($transaction->method, $transaction->bank_id, $transaction->wallet_id, $transaction->cashbox_id);
 
         if ($transaction->type === 'in') {
             $income = $transaction->incomeCategory?->account_id

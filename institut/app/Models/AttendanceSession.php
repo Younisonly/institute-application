@@ -9,6 +9,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 class AttendanceSession extends Model
 {
     protected $fillable = [
+        'teaching_session_id',
         'course_batch_id',
         'date',
         'period_id',
@@ -21,6 +22,11 @@ class AttendanceSession extends Model
         return [
             'date' => 'date',
         ];
+    }
+
+    public function teachingSession(): BelongsTo
+    {
+        return $this->belongsTo(TeachingSession::class, 'teaching_session_id');
     }
 
     public function batch(): BelongsTo

@@ -9,7 +9,7 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 class SupplierTransaction extends Model
 {
     protected $fillable = [
-        'supplier_id', 'type', 'amount', 'date', 'method', 'bank_id', 'wallet_id', 'transaction_ref',
+        'supplier_id', 'type', 'amount', 'date', 'method', 'bank_id', 'wallet_id', 'cashbox_id', 'transaction_ref',
         'reference', 'description', 'receipt_no', 'voided_at', 'void_reason', 'voided_by', 'created_by', 'journal_entry_id',
     ];
 
@@ -31,6 +31,11 @@ class SupplierTransaction extends Model
     public function wallet(): BelongsTo
     {
         return $this->belongsTo(Wallet::class);
+    }
+
+    public function cashbox(): BelongsTo
+    {
+        return $this->belongsTo(Cashbox::class);
     }
 
     public function createdBy(): BelongsTo

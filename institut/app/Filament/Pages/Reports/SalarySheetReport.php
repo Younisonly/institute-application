@@ -208,6 +208,12 @@ class SalarySheetReport extends Page implements HasForms, HasTable
 
                         return number_format((float) ($row['amount'] ?? 0)).' '.__('general.currency');
                     }),
+                TextColumn::make('outstanding_advance')
+                    ->label(__('general.outstanding_advance'))
+                    ->alignment(\Filament\Support\Enums\Alignment::End)
+                    ->weight('semibold')
+                    ->formatStateUsing(fn (Staff $record): string => number_format($record->outstanding_advance).' '.__('general.currency'))
+                    ->color(fn (Staff $record): string => $record->outstanding_advance > 0 ? 'warning' : 'gray'),
                 TextColumn::make('status')
                     ->label(__('general.status'))
                     ->badge()

@@ -602,9 +602,11 @@ class RegistrationService
         $start = CarbonImmutable::createFromFormat('Y-m', $startMonth);
 
         for ($i = 0; $i < $count; $i++) {
-            RegistrationMonth::create([
+            $monthStr = $start->addMonths($i)->format('Y-m');
+            RegistrationMonth::firstOrCreate([
                 'registration_id' => $registration->id,
-                'month' => $start->addMonths($i)->format('Y-m'),
+                'month' => $monthStr,
+            ], [
                 'status' => 'open',
             ]);
         }

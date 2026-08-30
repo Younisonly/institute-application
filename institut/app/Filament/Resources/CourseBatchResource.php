@@ -16,6 +16,7 @@ use Filament\Forms\Components\Section;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
+use Filament\Forms\Components\TimePicker;
 use Filament\Forms\Components\Toggle;
 use Filament\Forms\Form;
 use Filament\Forms\Get;
@@ -136,6 +137,35 @@ class CourseBatchResource extends Resource
                 ->minValue(0)
                 ->maxValue(999999999)
                 ->helperText(__('general.capacity_hint')),
+            TextInput::make('daily_hours')
+                ->label(__('general.daily_hours'))
+                ->numeric()
+                ->default(fn (): float => (float) ($course?->hours_per_session ?? 2.00))
+                ->required(),
+            TextInput::make('total_hours')
+                ->label(__('general.total_hours'))
+                ->numeric()
+                ->default(fn (): int => (int) ($course?->total_planned_hours ?? 30))
+                ->required(),
+            TextInput::make('break_duration')
+                ->label(__('general.break_duration'))
+                ->numeric()
+                ->default(fn (): int => (int) ($course?->break_duration ?? 0))
+                ->suffix('min'),
+            \Filament\Forms\Components\CheckboxList::make('working_days')
+                ->label(__('general.working_days'))
+                ->default(fn (): ?array => $course?->working_days)
+                ->options([
+                    'sun' => __('general.day_sun'),
+                    'mon' => __('general.day_mon'),
+                    'tue' => __('general.day_tue'),
+                    'wed' => __('general.day_wed'),
+                    'thu' => __('general.day_thu'),
+                    'fri' => __('general.day_fri'),
+                    'sat' => __('general.day_sat'),
+                ])
+                ->columns(4)
+                ->columnSpanFull(),
             MoneyInput::make('fee_schedule')
                 ->label(__('general.batch_fee'))
                 ->suffix(__('general.currency'))
@@ -361,6 +391,63 @@ class CourseBatchResource extends Resource
                     ->falseLabel(__('general.only_trashed')),
             ])
             ->actions([
+                Tables\Actions\Action::make('recordTeacherAttendance')
+                    ->label(__('general.record_teacher_attendance'))
+                    ->icon('heroicon-o-clock')
+                    ->color('info')
+                    ->form(fn (CourseBatch $record): array => [
+                        DatePicker::make('date')
+                            ->label(__('general.date'))
+                            ->default(now())
+                            ->required(),
+                        Select::make('status')
+                            ->label(__('general.status'))
+                            ->options([
+                                'present' => __('general.present'),
+                                'absent' => __('general.absent'),
+                                'late' => __('general.late'),
+                                'excused' => __('general.excused'),
+                                'cancelled_session' => __('general.cancelled_session'),
+                            ])
+                            ->default('present')
+                            ->required(),
+                        TextInput::make('hours_worked')
+                            ->label(__('general.hours_worked'))
+                            ->numeric()
+                            ->default($record->daily_hours ?? 2.00)
+                            ->required(),
+                        Textarea::make('notes')
+                            ->label(__('general.notes')),
+                    ])
+                    ->action(function (CourseBatch $record, array $data): void {
+                        if (! $record->teacher_id) {
+                            Notification::make()
+                                ->title(__('general.no_teacher_assigned'))
+                                ->warning()
+                                ->send();
+                            return;
+                        }
+
+                        StaffAttendance::updateOrCreate(
+                            [
+                                'staff_id' => $record->teacher_id,
+                                'course_batch_id' => $record->id,
+                                'date' => $data['date'],
+                            ],
+                            [
+                                'status' => $data['status'],
+                                'hours_worked' => $data['hours_worked'],
+                                'notes' => $data['notes'] ?? null,
+                                'created_by' => Auth::id(),
+                            ]
+                        );
+
+                        Notification::make()
+                            ->title(__('general.saved'))
+                            ->success()
+                            ->send();
+                    })
+                    ->visible(fn (?CourseBatch $record): bool => $record !== null && $record->teacher_id !== null),
                 Tables\Actions\Action::make('completeBatch')
                     ->label(__('general.complete_batch'))
                     ->icon('heroicon-o-academic-cap')
@@ -435,6 +522,13 @@ class CourseBatchResource extends Resource
                         ->requiresConfirmation(),
                 ]),
             ]);
+    }
+
+    public static function getRelations(): array
+    {
+        return [
+            CourseBatchResource\RelationManagers\TeacherAssignmentsRelationManager::class,
+        ];
     }
 
     public static function getPages(): array

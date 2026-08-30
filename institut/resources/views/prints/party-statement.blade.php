@@ -3,12 +3,19 @@
 @section('title', __('general.party_statement'))
 
 @section('content')
-    <h2 class="title">{{ __('general.party_statement') }} — {{ $statement['party']?->name ?? '' }}</h2>
+    @php
+        $isStaffComprehensive = ($statement['party_type'] ?? '') === 'staff' && ($statement['staff_mode'] ?? 'advances') === 'comprehensive';
+        $title = ($statement['party_type'] ?? '') === 'staff'
+            ? ($isStaffComprehensive ? __('general.staff_comprehensive_statement') : __('general.staff_advances_statement'))
+            : __('general.party_statement');
+    @endphp
+
+    <h2 class="title">{{ $title }} — {{ $statement['party']?->name ?? '' }}</h2>
 
     @php
         $typeLabel = match ($statement['party_type'] ?? '') {
             'student' => __('general.student'),
-            'staff' => __('general.staff_member'),
+            'staff' => $isStaffComprehensive ? __('general.staff_comprehensive_statement') : __('general.staff_advances_statement'),
             'supplier' => __('general.supplier'),
             'other' => __('general.other_people'),
             default => __('general.party'),

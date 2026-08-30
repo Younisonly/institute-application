@@ -1,0 +1,355 @@
+Viewed AdminPanelProvider.php:1-138
+
+Here is the **complete, detailed navigation map, page catalog, feature breakdown, and app capabilities** for the Institute Management System based on the exact codebase implementation.
+
+---
+
+# 🎨 Global Application Capabilities & UI/UX Features
+
+### 🌓 1. Dark Mode / Light Mode Theme System
+* **Header Toggle Button:** Located in the top navigation bar for instant 1-click theme switching.
+* **Persistent User Preference:** Theme choice is stored in local storage and user session.
+* **Tailored High-Contrast Styling:** Custom admin CSS (`theme.css`) ensures every table row, form input, modal, badge, and report page renders in crisp high-contrast colors in both Light and Dark modes.
+
+### 🌐 2. Dual Language & RTL Engine (Arabic / English)
+* **Navbar Language Switcher:** Instant switcher between **Arabic (`ar`)** and **English (`en`)**.
+* **Native RTL (Right-to-Left) Rendering:** When Arabic is selected (default), the sidebar flips to the right side, form fields align right, table columns flip, and icon directions adjust naturally.
+* **Dynamic Database Translation:** Data models dynamically expose Arabic or English titles (`name_ar` / `name_en`) depending on active locale across all select menus, tables, and reports.
+
+### 🖨️ 3. Direct Print & PDF Export Engine
+* **Automated `@media print` Filtering:** Pressing `Ctrl + P` or clicking any Print button automatically strips away topbars, sidebars, search boxes, and table controls, rendering clean printable documents.
+* **Printable Formats:** Custom layouts for **A5 Thermal/Impact Tuition Receipts**, **A4 Multi-Badge Student ID Cards**, **Official Graduation Certificates**, **Monthly Staff Salary Sheets**, and **Financial Statements**.
+
+### 🔍 4. Global Search & Real-Time Notifications
+* **Top-Bar Universal Search:** Instantly search across Students, Registrations, Courses, Staff, Invoices, and Receipts from anywhere in the system.
+* **Database Notification System:** Topbar bell icon with **30-second background polling** for alerts (low inventory stock, upcoming batch completions, unsubmitted exam marks).
+
+---
+
+# 📑 Complete Catalog of All Pages & Interactive Actions
+
+Below is the complete list of all **54 pages** in the system, detailing what each page contains, what sub-pages/modals you can navigate to, and every action you can perform.
+
+---
+
+## 🏢 Module 1: Dashboard & System Settings
+
+### 1. Main Dashboard (`/admin`)
+* **Widgets & Charts:**
+  * **Stats Overview:** Live cards for Total Active Students, Current Month Revenues, Unpaid Tuition Arrears, and Open Cashbox Balance.
+  * **Monthly Chart:** Revenue vs. Expenses bar chart.
+  * **Registrations Trend:** Line graph tracking enrollment numbers over time.
+  * **Batches Ending Soon:** List of class groups completing within 7–14 days.
+  * **Pending Results:** Class groups awaiting final exam grade entry.
+  * **Low Stock Warning:** Inventory items that dropped below reorder thresholds.
+  * **Recent Activity Log:** Live feed of newly issued receipts, registrations, and expenses.
+* **Navigation Destinations:** Clicking any widget card redirects directly to the corresponding filtered list page.
+
+### 2. Institute Settings Page (`/admin/institute-settings`)
+* **What you can do:**
+  * Edit Institute Name in Arabic & English.
+  * Upload official Institute Logo & Header/Footer letterhead banners.
+  * Set next sequential receipt number seed (e.g. start receipts from `#10001`).
+  * Configure default YER currency formatting and invoice terms/disclaimers.
+  * **Actions:** Save Settings, Reset Counter Seed.
+
+---
+
+## 🎓 Module 2: Student & Academic Management
+
+### 3. Student Roster Page (`/admin/students`)
+* **What you see:** Filterable table with Photo, Student Code, Full Name, Phone, Gender, Active Status, Total Enrollments Count, and Net Financial Balance.
+* **Table Filters:** Active/Inactive status, Gender, Registration date range.
+* **Header Actions:** **Create Student** button.
+* **Row Actions (What you can do per student):**
+  * 👁️ **View Student Profile** (navigates to `/admin/students/{id}`).
+  * ✏️ **Edit Student Details** (navigates to `/admin/students/{id}/edit`).
+  * 💳 **Print Account Statement** (opens printable party statement).
+  * 🆔 **Print Student ID Card** (opens printable visual ID badge layout).
+  * 🗑️ **Soft Delete Student** (with confirmation modal).
+
+### 4. Create Student Page (`/admin/students/create`)
+* **Form Sections:**
+  * **Personal Data:** Full Name AR/EN, Gender, Birth Date, National ID / Passport #.
+  * **Contact & Location:** Primary Phone, Secondary Phone, Email, Residential Address.
+  * **Guardian Details:** Guardian Name, Relationship, Guardian Phone #.
+  * **Photo:** Image file uploader with dynamic preview.
+* **Actions:** Save & View, Save & Create Another, Cancel.
+
+### 5. View Student Profile Page (`/admin/students/{id}`)
+* **Header Actions:** Edit Student, Print ID Card, Quick Register (enroll student into new course), Print Statement.
+* **Tabbed Views & Relation Tables:**
+  * **Registrations Tab:** View all courses/diplomas this student enrolled in, remaining balance, and status. Direct action: Collect Payment, Void.
+  * **Payment History Tab:** Complete list of all money receipts paid by this student with receipt numbers, dates, and amounts.
+  * **Issued Books Tab:** Textbooks received by this student.
+  * **Certificates Tab:** Academic certificates earned by this student.
+
+### 6. Edit Student Page (`/admin/students/{id}/edit`)
+* **What you can do:** Update any personal, contact, photo, or guardian information.
+
+### 7. Registration Directory Page (`/admin/registrations`)
+* **What you see:** Master table of all course/diploma registrations displaying Reg #, Student Name, Batch/Course, Price Snapshot, Total Paid, Remaining Balance, and Status (Active, Completed, Dropped, Suspended, Transferred).
+* **Filters:** Course/Batch filter, Status filter, Payment Status (Fully Paid, Partial, Unpaid), Date Range.
+* **Header Actions:** **New Registration** button (`/admin/registrations/create`).
+* **Row Actions (Interactive Features):**
+  * 💰 **Collect Payment Modal:** Opens inline payment popup. Select payment source (Cashbox / Bank / Wallet), enter amount YER, add notes. **Generates atomic sequential receipt voucher and posts balanced journal entry.**
+  * 🧾 **Print Receipt:** Triggers browser print view for the payment voucher.
+  * 🚫 **Void Registration Modal:** Opens modal requiring mandatory void reason. Reverses accounting journal entries and marks registration voided.
+  * 🎓 **Issue Certificate Modal:** Input final grade/GPA and issue official certificate serial.
+  * 🔄 **Transfer Registration:** Redirects to batch transfer flow.
+  * 🆔 **Print Student Card:** Opens graphic student card preview.
+  * 👁️ **View Registration Details** (`/admin/registrations/{id}`).
+  * ✏️ **Edit Registration Details** (`/admin/registrations/{id}/edit`).
+
+### 8. New Registration Page (`/admin/registrations/create`)
+* **Form Inputs:**
+  * **Student Picker:** Select existing student or click `+ Quick Add Student` modal.
+  * **Enrollment Type:** Select Short Course or Diploma Batch.
+  * **Course Batch Picker:** Selecting a batch auto-populates live course price into fee snapshot.
+  * **Price Snapshot & Discount:** Editable original fee, flat or % discount, auto-calculated net agreed tuition.
+  * **Immediate Down Payment (Optional):** Enter initial collected cash, select Cashbox/Bank account to issue receipt immediately.
+  * **Date Range:** Start Date & Expected Completion Date (auto-calculated).
+* **Actions:** Submit Registration, Cancel.
+
+### 9. View Registration Page (`/admin/registrations/{id}`)
+* **What you see:** Full breakdown of fee snapshot, discounts, month tracking, payment history timeline, journal entry links, and certificate status.
+
+### 10. Edit Registration Page (`/admin/registrations/{id}/edit`)
+* **What you can do:** Modify start/end dates, adjust notes, or update referral info.
+
+### 11. Enrollment Transfers Directory (`/admin/enrollment-transfers`)
+* **What you see:** History of student batch transfers (Source Batch ➔ Target Batch, Transfer Date, Financial balance carried over).
+* **Header Actions:** **New Enrollment Transfer** (`/admin/enrollment-transfers/create`).
+
+### 12. Create Enrollment Transfer Page (`/admin/enrollment-transfers/create`)
+* **Form Inputs:** Select Student Registration, Select Target Compatible Batch, Transfer Reason Notes, Financial Adjustment Balance options.
+* **Actions:** Process Transfer (carries over student balance and updates batch rosters).
+
+---
+
+## 📚 Module 3: Courses, Diplomas & Classes
+
+### 13. Courses Directory (`/admin/courses`)
+* **What you see:** Table of courses showing Course Code, Title AR/EN, Category, Duration Hours, Standard Tuition Fee, Active Batches Count.
+* **Header Actions:** **Create Course** (`/admin/courses/create`).
+* **Row Actions:** View, Edit, Delete, Manage Batches.
+
+### 14. Create / Edit Course Pages (`/admin/courses/create`, `/admin/courses/{id}/edit`)
+* **Form Inputs:** Course Code, Title AR/EN, Category, Total Credit Hours, Tuition Fee YER, Program Type link, Prerequisites multi-select.
+
+### 15. View Course Page & Relation Tabs (`/admin/courses/{id}`)
+* **Relation Managers:**
+  * **Batches Tab:** List of all active/past class groups scheduled for this course.
+  * **Enrolled Students Tab:** Roster of all students who took or are taking this course.
+  * **Prerequisites Tab:** Courses required before enrolling in this course.
+
+### 16. Course Batches Directory (`/admin/course-batches`)
+* **What you see:** Table of class groups displaying Batch Code/Name, Course, Room, Schedule Days, Shift (Morning/Evening), Start/End Dates, Primary Teacher, Status (Planned, Active, Completed, Cancelled).
+* **Filters:** Status filter, Course filter, Shift filter.
+* **Header Actions:** **Create Batch** (`/admin/course-batches/create`).
+* **Row Actions & Direct Jumps:**
+  * ✏️ **Edit Batch** (`/admin/course-batches/{id}/edit`).
+  * 📝 **Batch Marks Gradebook** (jumps directly to `/admin/batch-marks?batch_id={id}`).
+  * 📅 **Batch Attendance Matrix** (jumps directly to `/admin/batch-attendance?batch_id={id}`).
+  * 👁️ **View Batch Roster & Teachers** (`/admin/course-batches/{id}`).
+
+### 17. Create / Edit Course Batch Pages
+* **Form Inputs:** Batch Code, Select Course, Select Room, Start & End Dates, Max Capacity, Class Days (Sat/Mon/Wed, etc.), Shift Timing, Default Teacher, Default Compensation Model.
+
+### 18. View Batch & Relation Tabs (`/admin/course-batches/{id}`)
+* **Relation Managers:**
+  * **Enrolled Students Roster Tab:** Active student list, attendance percentage, fee status.
+  * **Teacher Assignments Tab:** Assign multiple teachers (Primary / Assistant) with custom pay rates (Hourly rate, Per-student fee/%, Fixed batch rate).
+  * **Teaching Sessions Log Tab:** View logged class sessions for this batch.
+
+### 19. Program Types / Diplomas Directory (`/admin/program-types`)
+* **What you see:** Table of diploma tracks (e.g. "2-Year IT Diploma", "English Language Diploma").
+* **Header Actions:** **Create Program Type** (`/admin/program-types/create`).
+
+### 20. Create / Edit Program Type & Curriculum Manager
+* **Form Inputs:** Program Title AR/EN, Total Credit Hours, Total Program Tuition Fee.
+* **Curriculum Relation Manager:** Add courses to specific diploma semesters/terms, set core vs. elective subjects.
+
+### 21. Academic Periods Page (`/admin/periods`)
+* **What you see:** List of academic semesters/terms with start dates, end dates, and status (Active, Closed).
+* **Actions:** Create Period, Edit Period, Close Term.
+
+### 22. Teaching Sessions Directory (`/admin/teaching-sessions`)
+* **What you see:** Log of conducted class sessions (Date, Batch, Teacher, Duration Hours, Topic Taught, Compensation Amount YER).
+* **Header Actions:** **Log Teaching Session** modal.
+
+### 23. Batch Attendance Matrix Page (`/admin/batch-attendance`)
+* **Interactive Tool:** Select Batch and Date, displays grid of all enrolled students.
+* **What you can do:** Fast toggle **Present / Absent / Late / Excused** buttons for each student, input delay minutes, and click **Save Attendance Matrix**.
+
+### 24. Batch Marks Gradebook Page (`/admin/batch-marks`)
+* **Interactive Tool:** Select Batch, displays student roster grid with score columns (Quizzes, Homework, Midterm, Final Exam).
+* **What you can do:** Input score values; system automatically calculates Total Score %, Pass/Fail status, and updates student academic records.
+
+### 25. Certificates Directory (`/admin/certificates`)
+* **What you see:** Table of issued certificates (Certificate Serial #, Student Name, Course/Diploma, Issue Date, Grade/GPA, Status).
+* **Row Actions:** 🖨️ **Print Certificate** (opens printable certificate design), Revoke Certificate.
+
+---
+
+## 👨‍💼 Module 4: Staff, Teachers & Payroll
+
+### 26. Staff Directory (`/admin/staff`)
+* **What you see:** Employee list displaying Photo, Employee ID, Full Name, Job Title, Employment Type, Pay Model (Salary, Hourly, Per-Student %, Per-Session), Mobile #, Active Status.
+* **Header Actions:** **Add New Staff** (`/admin/staff/create`).
+* **Row Actions:**
+  * 👁️ **View Staff Profile & Ledger** (`/admin/staff/{id}`).
+  * ✏️ **Edit Staff Record** (`/admin/staff/{id}/edit`).
+  * 💵 **Give Cash Advance Modal:** Disburse financial advance to staff member with automatic cash balance deduction and staff ledger posting.
+
+### 27. Create / Edit Staff Pages
+* **Form Inputs:** Personal details, Job Title picker, Hire Date, Contract Type, Base Salary YER, Pay Rate Model (Hourly Rate YER, Per-Session Rate, Per-Student Fee), Bank Details.
+
+### 28. View Staff Profile & Relation Tabs (`/admin/staff/{id}`)
+* **Relation Managers:**
+  * **Financial Ledger Tab:** Itemized advances, deductions, monthly payouts, and current net balance.
+  * **Attendance History Tab:** Daily check-in/out records and delay minutes.
+  * **Teaching Sessions Log Tab:** All class sessions taught by this instructor.
+
+### 29. Staff Attendance Log Page (`/admin/staff-attendances`)
+* **What you see:** Table of daily staff attendance records (Date, Employee, Check-in, Check-out, Status, Delay Minutes, Salary Deduction flag).
+* **Header Actions:** **Log Staff Attendance** modal.
+
+### 30. Job Titles Page (`/admin/job-titles`)
+* **What you can do:** Add/Edit staff position titles (Instructor, Accountant, Registrar, Administrator).
+
+---
+
+## 📦 Module 5: Books & Inventory Management
+
+### 31. Inventory Items Directory (`/admin/items`)
+* **What you see:** Table of stock items (Item Code/SKU, Name AR/EN, Category, Current Qty on Hand, Unit Cost, Selling Price, Minimum Reorder Threshold, Status).
+* **Header Actions:** **Add Item** (`/admin/items/create`).
+* **Row Actions:**
+  * 📦 **Adjust Stock Count Modal:** Manual stock adjustment (Add Received Stock / Write-off Damaged / Count Difference) with reason notes.
+  * ✏️ **Edit Item**.
+
+### 32. Item Categories Page (`/admin/item-categories`)
+* **What you can do:** Create/Edit inventory categories (Textbooks, Stationery, Office Supplies, IT Hardware).
+
+### 33. Books Catalog & Issue Page (`/admin/books`)
+* **What you see:** Academic coursebooks catalog linked to courses.
+* **Header Actions:** **Issue Book to Student Modal:** Select student registration, select book title, choose charge option (Free with tuition / Paid purchase), deduct stock, and generate receipt/invoice.
+
+---
+
+## 💵 Module 6: Cashbox, Banking & Finance Management
+
+### 34. Finances Central Dashboard (`/admin/finances`)
+* **Financial Overview Widgets:**
+  * **Cashbox Balances Card:** Total cash across all active cashier tills.
+  * **Bank Balances Card:** Total funds in bank accounts.
+  * **Mobile Wallets Card:** Total funds in E-Wallets.
+  * **Receivables / Arrears Summary:** Uncollected tuition fees.
+
+### 35. Payments Fast Terminal (`/admin/payments`)
+* **High-Speed Cashier Tool:** Quick lookup student by name/code, displays active registration dues, input amount collected, select target Cashbox/Bank, click **Collect & Print Receipt**.
+
+### 36. Cashbox Tills Directory (`/admin/cashboxes`)
+* **What you see:** List of cash tills (Till Name, Assigned Cashier User, Currency YER, Live Cash Balance, Status).
+* **Header Actions:** **Create Cashbox** (`/admin/cashboxes/create`).
+* **Row Actions:** View Shift History, Edit Cashbox.
+
+### 37. Cashbox Shifts Directory (`/admin/cashbox-shifts`)
+* **What you see:** Master log of cashier shifts (Shift #, Cashbox, Cashier Name, Opened Date/Time, Closed Date/Time, Opening Cash, Cash Inflows, Cash Disbursements, System Ending Cash, Physical Counted Cash, Over/Short Difference, Status).
+* **Row Actions:** 👁️ **View Shift Transaction Log** (`/admin/cashbox-shifts/{id}`).
+
+### 38. View Cashbox Shift Page (`/admin/cashbox-shifts/{id}`)
+* **What you see:** Complete itemized ledger of every single receipt collected and expense disbursed during that cashier's shift.
+
+### 39. My Cashbox Shift Page (`/admin/my-cashbox-shift`)
+* **Cashier Workspace Terminal:**
+  * **Start Shift:** Input physical opening cash count.
+  * **Active Shift Monitor:** Live table showing all receipts/payments processed during active shift.
+  * **Close Shift:** Enter physical cash count on hand. System automatically calculates ending cash variance (Exact / Shortage / Overage), logs discrepancy, and closes shift.
+
+### 40. Bank Accounts Directory (`/admin/banks`)
+* **What you see:** Bank accounts table (Bank Name, Account # / IBAN, Branch, Live Balance YER).
+* **Row Actions:** View Bank Statement, Edit Bank.
+
+### 41. E-Wallets Directory (`/admin/wallets`)
+* **What you see:** Mobile money accounts (Kuraimi Quality, Jawal, One Cash, Floos) with phone numbers and live balances.
+
+### 42. Internal Money Transfers (`/admin/transfers`)
+* **What you see:** History of fund transfers between accounts.
+* **Header Actions:** **New Transfer Modal:** Select Source Account (Cashbox/Bank/Wallet), Select Destination Account (Cashbox/Bank/Wallet), Transfer Amount YER, Description. **Auto-posts balancing journal entries.**
+
+---
+
+## 🧾 Module 7: Accounting Ledger & Double-Entry Accounting
+
+### 43. Operational Expenses Directory (`/admin/expenses`)
+* **What you see:** Log of institute expenses (Voucher #, Date, Category, Amount YER, Paid From: Cashbox/Bank/Wallet, Beneficiary, Description).
+* **Header Actions:** **Record Expense Modal:** Select Category, Amount YER, Payment Source, Beneficiary, Upload Receipt Attachment. Auto-posts debit to Expense account and credit to Cashbox/Bank.
+
+### 44. Expense Categories Page (`/admin/expense-categories`)
+* **What you can do:** Create/Edit expense types (Rent, Generator Fuel, Utilities, Maintenance, Internet, Hospitality).
+
+### 45. Income Categories Page (`/admin/income-categories`)
+* **What you can do:** Create non-tuition revenue channels (Placement Test Fees, Verification Fees, Hall Rental).
+
+### 46. Suppliers & Vendor Debts Page (`/admin/suppliers`)
+* **What you see:** Supplier directory, contact info, total purchases, net debt balance.
+* **Row Actions:**
+  * 👁️ **View Supplier Ledger & Purchases** (`/admin/suppliers/{id}`).
+  * 💵 **Pay Supplier Modal:** Disburse payment to supplier from Cashbox/Bank, auto-posts journal entry to clear supplier debt.
+
+### 47. Other People / Third-Party Ledgers (`/admin/other-people`)
+* **What you see:** Personal accounts for owners, partners, temporary loans, non-supplier debt/credits.
+* **Row Actions:** View Ledger (`/admin/other-people/{id}`), Record Money In (Loan received/Partner deposit), Record Money Out (Loan repayment/Drawing).
+
+### 48. Party Types Page (`/admin/party-types`)
+* **What you can do:** Manage classifications for third-party ledgers (Partners, Lenders, Contractors).
+
+### 49. Chart of Accounts Tree (`/admin/accounts`)
+* **What you see:** Hierarchical 5-category tree of accounts (Assets, Liabilities, Equity, Revenues, Expenses) showing Account Code, Dual-Language Name, Parent Account, and Live Balance YER.
+* **Header Actions:** **Create Account Modal**.
+
+### 50. General Journal Entries Page (`/admin/journals`)
+* **What you see:** Accounting vouchers table showing Journal #, Voucher Date, Transaction Reference, Debit Total, Credit Total, Void Status.
+* **Row Actions:** 👁️ **View Journal Entry** (`/admin/journals/{id}`). Displays balanced debit/credit line table, reference documents, and reversing entry links.
+
+### 51. Opening Balances Wizard (`/admin/opening-balances`)
+* **System Initialization Tool:** Setup initial financial balances for Chart of Accounts, Bank Accounts, Cashboxes, Supplier Balances, and Student Balances upon initial system deployment.
+
+### 52. Fiscal Year Closing Page (`/admin/fiscal-year-closing`)
+* **Year-End Accounting Tool:** Locks historical accounting periods, zero-out revenue/expense accounts, and transfers net profit/loss into Retained Earnings.
+
+---
+
+## 📊 Module 8: Comprehensive Reports & Analytics (15 Reports)
+
+### 53. Analytical Reports Hub (`/admin/reports/...`)
+
+1. 📈 **Account Ledger (`/admin/reports/account-ledger`)**: Filter any account by date range to view line-by-line debit/credit postings and running balances.
+2. 📄 **Account Statement (`/admin/reports/account-statement`)**: Filter by student, supplier, or party to generate printable account statements with running net balance.
+3. ⚠️ **Arrears Report (`/admin/reports/arrears-report`)**: Filter overdue student tuition balances grouped by course batch, displaying unpaid months and guardian phone numbers.
+4. ⚖️ **Balance Sheet (`/admin/reports/balance-sheet`)**: Generates formal Assets = Liabilities + Equity financial position report at any target date.
+5. 🏧 **Cashbox Ledger Report (`/admin/reports/cashbox-ledger-report`)**: Complete record of all receipts, disbursements, and shifts for a cashbox till.
+6. 💵 **Daily Cash Report (`/admin/reports/daily-cash-report`)**: Daily cash collections report broken down by cashier, payment method, category, and shift.
+7. 📊 **Enrollment Report (`/admin/reports/enrollment-report`)**: Admission statistics, active enrollments, course completions, dropouts, and batch fill rates.
+8. 📉 **Income Statement / P&L (`/admin/reports/income-statement`)**: Profit & Loss statement calculating Net Income (Revenues minus Expenses) over a selected date range.
+9. 💰 **Profit Report (`/admin/reports/profit-report`)**: Course profitability analysis comparing tuition collections against teacher pay and direct material costs.
+10. 📋 **Registration Lists Report (`/admin/reports/registration-lists-report`)**: Filterable class rosters and student contact lists per batch/course.
+11. 🧾 **Salary Sheet Report (`/admin/reports/salary-sheet-report`)**: Monthly payroll breakdown for all staff (base salary, teaching hours/rates, attendance deductions, advances, net payable).
+12. 📦 **Stock Inventory Report (`/admin/reports/stock-inventory-report`)**: Stock valuation report displaying item quantities on hand, reorder alerts, cost values, and retail values.
+13. 🆔 **Student ID Cards Report (`/admin/reports/student-id-cards-report`)**: Badge layout generator for printing student ID cards with photos, QR codes, student code, and expiry dates.
+14. 💳 **Student Payment History Report (`/admin/reports/student-payment-history-report`)**: Comprehensive payment log and receipt history for any selected student.
+15. ⚖️ **Trial Balance (`/admin/reports/trial-balance`)**: Trial balance sheet verifying total debit balances equal total credit balances across all active chart of accounts.
+
+---
+
+## 🔒 Module 9: System Security & Audit Trail
+
+### 54. Audit Logs Directory (`/admin/audit-logs`)
+* **What you see:** Master security log table with search by User, Action (Created, Updated, Voided, Deleted), Target Model, IP Address, and Timestamp.
+* **Row Actions:** 👁️ **View Audit Modal:** Side-by-side JSON diff displaying exact **Before (Old Values)** and **After (New Values)** for every modified field in the system.
+
+### 55. Users & Roles Management (`/admin/users`)
+* **What you see:** User account list displaying Name, Email, Assigned Roles (`admin`, `accountant`, `registrar`, `teacher`), and Active Status.
+* **Header Actions:** **Create User Modal**.

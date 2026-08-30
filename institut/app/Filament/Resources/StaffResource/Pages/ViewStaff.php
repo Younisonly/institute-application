@@ -67,7 +67,7 @@ class ViewStaff extends ViewRecord
                             ->columnSpan(1),
                     ]),
                 Section::make(__('general.salary'))
-                    ->columns(3)
+                    ->columns(4)
                     ->schema([
                         TextEntry::make('salary_type')
                             ->label(__('general.salary_type'))
@@ -79,6 +79,11 @@ class ViewStaff extends ViewRecord
                             ->formatStateUsing(fn (string $state, $record): string => $record->salary_type === 'percentage'
                                 ? ($record->percentage_value !== null ? number_format((float) $record->percentage_value, 0) . '%' : '—')
                                 : number_format((float) $state) . ' ' . __('general.currency')),
+                        TextEntry::make('outstanding_advance')
+                            ->label(__('general.outstanding_advance'))
+                            ->weight(FontWeight::Bold)
+                            ->formatStateUsing(fn (float $state): string => number_format($state) . ' ' . __('general.currency'))
+                            ->color(fn (float $state): string => $state > 0 ? 'warning' : 'success'),
                         TextEntry::make('contract_no')->label(__('general.contract_no'))->placeholder('—'),
                     ]),
                 Section::make(__('general.contact'))

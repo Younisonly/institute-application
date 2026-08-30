@@ -23,6 +23,7 @@ class StudentTransaction extends Model
         'method',
         'bank_id',
         'wallet_id',
+        'cashbox_id',
         'transaction_ref',
         'income_account_id',
         'journal_entry_id',
@@ -31,6 +32,11 @@ class StudentTransaction extends Model
         'voided_by',
         'created_by',
     ];
+
+    public function cashbox(): BelongsTo
+    {
+        return $this->belongsTo(Cashbox::class, 'cashbox_id');
+    }
 
     protected function casts(): array
     {

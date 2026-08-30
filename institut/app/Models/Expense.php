@@ -14,6 +14,7 @@ class Expense extends Model
         'payment_method',
         'bank_id',
         'wallet_id',
+        'cashbox_id',
         'transaction_ref',
         'journal_entry_id',
         'description',
@@ -49,6 +50,11 @@ class Expense extends Model
     public function wallet(): BelongsTo
     {
         return $this->belongsTo(Wallet::class);
+    }
+
+    public function cashbox(): BelongsTo
+    {
+        return $this->belongsTo(Cashbox::class);
     }
 
     public function journalEntry(): BelongsTo

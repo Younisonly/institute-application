@@ -74,14 +74,24 @@ class TransactionsRelationManager extends RelationManager
                     ->formatStateUsing(fn ($state) => $state ? __('general.voided') : '')
                     ->color('gray'),
             ])
+            ->filters([
+                Tables\Filters\SelectFilter::make('type')
+                    ->label(__('general.type'))
+                    ->options([
+                        'advance' => __('general.advance'),
+                        'repayment' => __('general.repayment'),
+                        'deduction' => __('general.deduction'),
+                        'salary' => __('general.salary'),
+                    ]),
+            ])
             ->headerActions([
                 Tables\Actions\Action::make('salaryPayment')
                     ->label(__('general.salary_payment'))
                     ->icon('heroicon-o-banknotes')
                     ->color('success')
-                    ->form($this->salaryAndDeductionFields())
+                    ->form(fn (): array => $this->salaryAndDeductionFields(true))
                     ->action(function (array $data): void {
-                        $this->createTransaction('salary', $data);
+                        $this->createSalaryWithOptionalDeduction($data);
                     }),
                 Tables\Actions\Action::make('giveAdvance')
                     ->label(__('general.give_advance'))
@@ -103,8 +113,16 @@ class TransactionsRelationManager extends RelationManager
                     ->label(__('general.deduction'))
                     ->icon('heroicon-o-minus-circle')
                     ->color('danger')
-                    ->form($this->salaryAndDeductionFields())
+                    ->form(fn (): array => $this->salaryAndDeductionFields(false))
                     ->action(function (array $data): void {
+                        $outstanding = (float) $this->getOwnerRecord()->outstanding_advance;
+                        if ($outstanding > 0 && (float) $data['amount'] > $outstanding) {
+                            Notification::make()
+                                ->title(__('general.advance_exceeded', ['max' => number_format($outstanding) . ' ' . __('general.currency')]))
+                                ->danger()
+                                ->send();
+                            return;
+                        }
                         $this->createTransaction('deduction', $data);
                     }),
             ])
@@ -160,48 +178,80 @@ class TransactionsRelationManager extends RelationManager
         return max(0, $base - $totalPaidThisMonth);
     }
 
-    private function salaryAndDeductionFields(): array
+    private function salaryAndDeductionFields(bool $includeDeductionInput = true): array
     {
-        return [
+        $outstanding = (float) $this->getOwnerRecord()->outstanding_advance;
+
+        $fields = [
             \Filament\Forms\Components\Select::make('salary_month')
                 ->label(__('general.salary_month'))
                 ->options($this->getSalaryMonthOptions())
                 ->default(now()->format('Y-m'))
                 ->required()
-                ->live()
-                ->afterStateUpdated(function ($state, callable $set) {
-                    $set('max_payable', $this->getPayableSalary($state ?? now()->format('Y-m')));
-                }),
+                ->live(),
             \Filament\Forms\Components\Placeholder::make('month_warning')
                 ->hiddenLabel()
-                ->content(fn ($get) => new HtmlString('<span style="color: red; font-weight: bold;">' . __('general.month_not_ended_warning') . '</span>'))
-                ->visible(fn ($get) => $get('salary_month') === now()->format('Y-m') && now()->day < 28),
+                ->content(fn (\Filament\Forms\Get $get) => new HtmlString('<span style="color: red; font-weight: bold;">' . __('general.month_not_ended_warning') . '</span>'))
+                ->visible(fn (\Filament\Forms\Get $get) => $get('salary_month') === now()->format('Y-m') && now()->day < 28),
             \Filament\Forms\Components\Placeholder::make('base_salary')
                 ->label(__('general.base_salary'))
                 ->content(fn () => number_format((float) $this->getOwnerRecord()->salary_value) . ' ' . __('general.currency')),
             \Filament\Forms\Components\Placeholder::make('outstanding_advances')
                 ->label(__('general.outstanding_advances'))
-                ->content(fn () => number_format((float) $this->getOwnerRecord()->outstanding_advance) . ' ' . __('general.currency')),
-            \Filament\Forms\Components\Placeholder::make('max_payable_placeholder')
-                ->label(__('general.max_payable'))
-                ->content(fn ($get) => number_format((float) $this->getPayableSalary($get('salary_month') ?? now()->format('Y-m'))) . ' ' . __('general.currency')),
-            MoneyInput::make('amount')
-                ->label(__('general.amount'))
-                ->required()
-                ->minValue(1)
+                ->content(fn () => number_format($outstanding) . ' ' . __('general.currency')),
+        ];
+
+        if ($includeDeductionInput && $outstanding > 0) {
+            $fields[] = MoneyInput::make('deduct_advance_amount')
+                ->label(__('general.deduct_from_advance'))
+                ->helperText(__('general.deduct_from_advance_hint'))
+                ->nullable()
+                ->live()
                 ->rules([
-                    fn ($get) => function (string $attribute, $value, \Closure $fail) use ($get) {
-                        $max = $this->getPayableSalary($get('salary_month') ?? now()->format('Y-m'));
-                        if ((float) $value > $max) {
-                            $fail(__('general.max_salary_exceeded', ['max' => number_format($max)]));
+                    fn (\Filament\Forms\Get $get) => function (string $attribute, $value, \Closure $fail) use ($outstanding) {
+                        if ((float) $value > $outstanding) {
+                            $fail(__('general.advance_exceeded', ['max' => number_format($outstanding) . ' ' . __('general.currency')]));
                         }
                     },
-                ]),
-            DatePicker::make('date')->label(__('general.date'))->default(now())->displayFormat('d/m/Y'),
-            ...PaymentDetails::fields(),
-            TextInput::make('reference')->label(__('general.reference'))->maxLength(50),
-            TextInput::make('description')->label(__('general.description'))->maxLength(255),
-        ];
+                ]);
+        }
+
+        $fields[] = \Filament\Forms\Components\Placeholder::make('max_payable_placeholder')
+            ->label(__('general.max_payable'))
+            ->content(function (\Filament\Forms\Get $get): string {
+                $salaryMonth = $get('salary_month') ?? now()->format('Y-m');
+                $basePayable = $this->getPayableSalary($salaryMonth);
+                $deduction = (float) ($get('deduct_advance_amount') ?? 0);
+                $maxCash = max(0, $basePayable - $deduction);
+
+                return number_format($maxCash) . ' ' . __('general.currency');
+            });
+
+        $fields[] = MoneyInput::make('amount')
+            ->label(__('general.amount'))
+            ->required()
+            ->minValue(1)
+            ->rules([
+                fn (\Filament\Forms\Get $get) => function (string $attribute, $value, \Closure $fail) use ($get) {
+                    $salaryMonth = $get('salary_month') ?? now()->format('Y-m');
+                    $basePayable = $this->getPayableSalary($salaryMonth);
+                    $deduction = (float) ($get('deduct_advance_amount') ?? 0);
+                    $maxCash = max(0, $basePayable - $deduction);
+
+                    if ((float) $value > $maxCash) {
+                        $fail(__('general.max_salary_exceeded', ['max' => number_format($maxCash) . ' ' . __('general.currency')]));
+                    }
+                },
+            ]);
+
+        $fields[] = DatePicker::make('date')->label(__('general.date'))->default(now())->displayFormat('d/m/Y');
+        foreach (PaymentDetails::fields() as $pField) {
+            $fields[] = $pField;
+        }
+        $fields[] = TextInput::make('reference')->label(__('general.reference'))->maxLength(50);
+        $fields[] = TextInput::make('description')->label(__('general.description'))->maxLength(255);
+
+        return $fields;
     }
 
     private function transactionFields(): array
@@ -213,6 +263,51 @@ class TransactionsRelationManager extends RelationManager
             TextInput::make('reference')->label(__('general.reference'))->maxLength(50),
             TextInput::make('description')->label(__('general.description'))->maxLength(255),
         ];
+    }
+
+    private function createSalaryWithOptionalDeduction(array $data): void
+    {
+        DB::transaction(function () use ($data): void {
+            $staffId = $this->getOwnerRecord()->id;
+            $deductionAmount = (float) ($data['deduct_advance_amount'] ?? 0);
+            $salaryAmount = (float) $data['amount'];
+
+            if ($salaryAmount > 0) {
+                StaffTransaction::create([
+                    'staff_id' => $staffId,
+                    'type' => 'salary',
+                    'amount' => $salaryAmount,
+                    'date' => $data['date'],
+                    'salary_month' => $data['salary_month'] ?? null,
+                    'method' => $data['method'] ?? 'cash',
+                    'bank_id' => $data['bank_id'] ?? null,
+                    'wallet_id' => $data['wallet_id'] ?? null,
+                    'transaction_ref' => $data['transaction_ref'] ?? null,
+                    'reference' => $data['reference'] ?? null,
+                    'description' => $data['description'] ?? null,
+                    'created_by' => Auth::id(),
+                ]);
+            }
+
+            if ($deductionAmount > 0) {
+                StaffTransaction::create([
+                    'staff_id' => $staffId,
+                    'type' => 'deduction',
+                    'amount' => $deductionAmount,
+                    'date' => $data['date'],
+                    'salary_month' => $data['salary_month'] ?? null,
+                    'method' => $data['method'] ?? 'cash',
+                    'bank_id' => $data['bank_id'] ?? null,
+                    'wallet_id' => $data['wallet_id'] ?? null,
+                    'transaction_ref' => $data['transaction_ref'] ?? null,
+                    'reference' => $data['reference'] ?? null,
+                    'description' => ($data['description'] ? $data['description'] . ' — ' : '') . __('general.deduct_from_advance'),
+                    'created_by' => Auth::id(),
+                ]);
+            }
+        });
+
+        Notification::make()->title(__('general.saved'))->success()->send();
     }
 
     private function createTransaction(string $type, array $data): void

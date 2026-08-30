@@ -46,8 +46,8 @@ See AGENTS.md for conventions and non-negotiable business rules.
 - [x] Staff CRUD (profile, job title from list, photo, contract) + view pages + Documents relation manager (PDF/image uploads, preview, download, easy remove)
 - [x] Soft delete everywhere: delete = trashed (restorable), restore + permanent delete + trashed filter on Staff/Students/Jobs/Documents
 - [x] Staff salary types: monthly / percentage (of collected fees) / per hour
-- [x] Staff account: salary payments, advances, repayments, deductions, outstanding advance + salary paid columns
-- [x] Monthly salary sheet (printable)
+- [x] Staff account & ERP Payroll: salary history (`StaffSalaryHistory`), monthly entitlements (`StaffPayrollPeriod`), partial installment payout cuts, salary advances vs deductions, disciplinary penalties, double-entry journal accrual (`5100` expense / `2120` payable) & cash payouts, teacher attendances (`StaffAttendance`), course batch schedules (`daily_hours`, `total_hours`, `working_days`), discount controls. ✅ done 2026-08-28 (100% tests pass, audit 0 findings)
+- [x] Monthly salary sheet (printable) & Payroll Ledger
 - [ ] Dashboard: stats widget done; KPI charts later
 - [x] Tests: 23 passing (balance math, receipt sequence, void, advances, job titles, guardian fields, view pages, storage URL, soft delete, document download, pages render)
 
@@ -408,6 +408,7 @@ Adjust per the matrix above for each resource. Add `->authorize(fn (): bool => a
 
 ### 18-A · Navigation Reorganization (finance group has 12+ items)
 - [x] Split into 4 groups: `nav_finance` (Payments, Expenses, Transfers, Opening Balances), `nav_ledger` (Journal, Account Ledger, Trial Balance, Income Statement, Balance Sheet), `nav_parties` (Suppliers, Other People, Party Types, Income Categories), `nav_places` (Banks, Wallets). Add `nav_ledger`, `nav_parties`, `nav_places` keys to both lang files. ✅ done 2026-08-13 (already applied in Phase 27)
+- [x] Sidebar Navigation Groups Ordering — Reorder navigation groups per best practices & user specification: Students & Courses at top after Dashboard, Reports before Settings, Settings at end. ✅ done 2026-08-27 (277/278 tests passed, 0 audit findings)
 
 ### 18-B · Form Field Improvements
 - [x] Remove `->preload()` from large Selects — removed from ExpenseCategory Select. ✅ done 2026-08-13
@@ -1029,4 +1030,86 @@ Configured immediate table refresh when selecting an account or party without re
 - [x] Super Audit Phase 3 P2 Fixes (Registration withdraw/cancel, Expense approval tracking, Finances date filter, Double-click guard, Capacity hint) ✅ done 2026-08-27
 - [x] Super Audit Phase 4 P3 Polish Fixes (Dev scripts cleanup, Account hierarchy accessor, Percentage discounts, Student state machine) ✅ done 2026-08-27
 - [x] Phase 61 Student Details View 419 Fix & Badge Match Blocks (Session driver file, transaction badge match defaults, widget model typehint, null-safe closures, bilingual keys) ✅ done 2026-08-27
+
+## PHASE 62 — MULTI-CASHBOX, MULTI-TREASURY & CASHIER SHIFT MANAGEMENT SYSTEM ✅ COMPLETE 2026-08-27
+## ═══════════════════════════════════════════
+
+> **Justification & Benchmark against Financial Systems (YemenSoft Onyx Pro, ERPNext, Odoo POS/Treasury):**
+> Modern financial systems do NOT treat cash as a single black-box account. Instead, they implement multi-treasury hierarchy (صناديق فرعية، خزينة رئيسية، حوافظ كاشير) where:
+> 1. Every physical cash drawer/safe is tracked as a distinct asset account linked under `1100` (Assets - Cash on hand).
+> 2. Each cashier/user is assigned to an authorized cashbox with a default assignment per session/user.
+> 3. Shift/Session Management & Daily Cash Reconciliation (جرد وتصفية الوردية): Cashiers open/close shifts, count physical cash, flag variances (Cash Surplus `4500` / Cash Shortage `1440`), and post automated audit journal entries.
+> 4. Inter-Treasury Transfers (تحويلات بين الخزائن والصناديق والبنوك): Seamlessly transfer collections from cashier boxes to the main safe or bank accounts.
+> 5. 100% Cash-basis double-entry integrity (`FinancePostingService`) maintained across all modules (Student Payments, Book Sales, Supplier Payments, Expenses, Staff Advances, Other-People Transactions).
+
+### Phase 62-A: Core Multi-Cashbox Data Schema & Double-Entry Accounting Core
+- [x] **Migration & `Cashbox` Model (`cashboxes` table)** — `name_ar`, `name_en`, `code` (unique), `keeper_id` (FK to `users`, nullable custodian), `min_balance`, `max_balance`, `is_default` (boolean), `is_active` (boolean), `notes`, `created_by`, `softDeletes`. ✅ done 2026-08-27
+- [x] **Morphological Account Integration (`AccountService::ensureForPlace(Cashbox $cashbox)`)** — Dynamically links each Cashbox to an asset account (`Account` morph `place_type` = `Cashbox::class`, `place_id` = `cashbox.id`, code prefix `1110 + id`). ✅ done 2026-08-27
+- [x] **Transaction Schema Migration (`cashbox_id` FK)** — Adds `cashbox_id` (nullable, constrained to `cashboxes`, `nullOnDelete`) across 6 transaction tables: `student_transactions`, `supplier_transactions`, `staff_transactions`, `other_people_transactions`, `expenses`, `stock_movements`. ✅ done 2026-08-27
+- [x] **User Cashbox Assignment (`users.default_cashbox_id`)** — Migration adding `default_cashbox_id` FK to `users` table for default cashier cashbox pre-filling. ✅ done 2026-08-27
+- [x] **Payment Details Component Update (`PaymentDetails::fields()`)** — Includes `cashbox_id` Select (searchable, native false) when `method === 'cash'`, defaulting to logged-in user's assigned cashbox or default system cashbox. ✅ done 2026-08-27
+- [x] **Finance Posting Service Enhancement (`FinancePostingService::placeAccount()`)** — When `method === 'cash'`, resolves `$cashboxId` to the specific `Cashbox` account. Falls back to generic `CODE_CASH` for legacy records without `cashbox_id`. ✅ done 2026-08-27
+
+### Phase 62-B: Cashier Shift Management & Cash Reconciliation (إغلاق وتصفية الوردية)
+- [x] **Migration & `CashboxShift` Model (`cashbox_shifts` table)** — `cashbox_id`, `user_id`, `opened_at`, `closed_at`, `status` (`open`, `closed`, `reconciled`), `opening_balance` (decimal 16,2), `system_cash_in` (decimal 16,2), `system_cash_out` (decimal 16,2), `expected_closing_balance` (decimal 16,2), `physical_cash_count` (decimal 16,2), `variance_amount` (decimal 16,2), `variance_type` (`none`, `surplus`, `shortage`), `variance_notes`, `journal_entry_id` (FK), `closed_by` (FK). ✅ done 2026-08-27
+- [x] **`CashboxShiftService` Core Logic:**
+  - `openShift(cashboxId, userId, openingBalance)`
+  - `calculateShiftTotals(shiftId)` — aggregates cash inflows and outflows for the shift window.
+  - `closeAndReconcile(shiftId, physicalCount, notes, transferToMainSafe = false)`:
+    - Calculates `expected_balance = opening_balance + system_cash_in - system_cash_out`.
+    - Calculates `variance = physical_cash_count - expected_balance`.
+    - If `variance > 0` (Surplus / فائض): Debit Cashbox Account, Credit Cash Surplus Account (`4500` / `فائض الصناديق`).
+    - If `variance < 0` (Shortage / عجز): Debit Cashier Shortage Account (`1440` / `عجز الصناديق - عهدة المحصل`), Credit Cashbox Account.
+    - Generates balanced double-entry journal entry via `JournalService`.
+    - Supports optional automated transfer of closed cash to Main Safe (`Cashbox::where('is_default', true)`). ✅ done 2026-08-27
+
+### Phase 62-C: Filament Management UI & Cashier Workflows
+- [x] **`CashboxResource` CRUD (Admin & Accountant)** — Full management of cashboxes, codes, custodians, min/max liquidity safety thresholds, and real-time live balance column. ✅ done 2026-08-27
+- [x] **`MyCashboxShift` Page / Header Action (Cashier Desktop)** — Dedicated view for active shift status, live real-time collection count, opening float, and "Close Shift & Reconcile Cash" modal. ✅ done 2026-08-27
+- [x] **`CashboxShiftResource` Register** — Audit register of all past cashier shifts, physical counts, expected balances, variance amounts, and printable Shift Closure Voucher (`prints/shift-closing-voucher.blade.php`). ✅ done 2026-08-27
+- [x] **Place-to-Place Transfer UI (`TransferResource`)** — Enhanced transfer action supporting Cashbox-to-Cashbox, Cashbox-to-Bank, and Bank-to-Cashbox transfers with balance verification checks. ✅ done 2026-08-27
+
+### Phase 62-D: Multi-Treasury Reports, Localization & Audit Test Suite
+- [x] **`CashboxLedgerReport` (كشف حركة الصندوق المحدد)** — Detailed statement of inflows, outflows, shift closings, and running balances for any selected cashbox/treasury. ✅ done 2026-08-27
+- [x] **Multi-Treasury Liquidity Summary Widget (`Finances` Dashboard)** — Card view showing live balances across all Cashboxes, Banks, and Wallets with visual warnings for boxes exceeding `max_balance` or dropping below `min_balance`. ✅ done 2026-08-27
+
+
+## PHASE 63 — STAFF LEDGER ACCOUNTING RECONCILIATION & DUAL STATEMENT MODES ✅ COMPLETE 2026-08-28
+## ═══════════════════════════════════════════
+
+> **Benchmark & Financial Standards (YemenSoft Onyx Pro ERP, ERPNext, Odoo Accounting):**
+> Resolved the mathematical discrepancy where staff account statements rendered unequal Total Debits and Total Credits on zero-balance records.
+> 1. In double-entry accounting standards, a financial statement is only reconciled when Total Debits equal Total Credits when net balance is zero.
+> 2. Implemented dual statement view modes in alignment with YemenSoft Onyx Pro and ERPNext:
+>    - **Staff Advances Register (`advances` - Default)**: Tracks loan advances, repayments, and deductions (`Total Debit == Total Credit`). Excludes net cash salary disbursements as they are operational salary expenses.
+>    - **Comprehensive Staff Personal Statement (`comprehensive`)**: Includes complete payroll history with gross salary entitlements (استحقاق الراتب) and cash disbursements (`Total Debit == Total Credit`).
+> 3. Updated `ReportService::partyLedger`, `AccountStatement` Filament page, `PrintController`, print templates (`party-statement.blade.php`), `TransactionsRelationManager`, bilingual localization (`ar`/`en`), and added full automated test coverage (`StaffLedgerAccountingTest`).
+
+- [x] **Core Accounting Service Update (`ReportService::partyLedger`)** — Accepts `$staffMode` parameter (`advances` / `comprehensive`). Excludes pure salary payouts from Advances Register, and generates gross salary entitlement rows in Comprehensive mode so Total Debits equal Total Credits. ✅ done 2026-08-28
+- [x] **Filament Page & Form Integration (`AccountStatement.php`)** — Added `staff_statement_mode` Select field to report form. Updated table queries, debit/credit states, and summarizers to dynamically match `ReportService` calculations. ✅ done 2026-08-28
+- [x] **Print Controller & Templates (`PrintController.php` & `party-statement.blade.php`)** — Propagated `staff_statement_mode` query parameter and updated printable header title dynamically. ✅ done 2026-08-28
+- [x] **Staff Resource Filter (`TransactionsRelationManager.php`)** — Added SelectFilter for transaction types (`advance`, `repayment`, `deduction`, `salary`). ✅ done 2026-08-28
+- [x] **Localization & Audit Verification** — Added all new keys to BOTH `lang/en/general.php` and `lang/ar/general.php` and attributes to `validation.php`. `/usr/bin/php artisan strings:audit` returned 0 findings. ✅ done 2026-08-28
+- [x] **Automated Test Suite Coverage** — Created `StaffLedgerAccountingTest.php` (2 tests, 10 assertions passed). Ran full PHPUnit suite: 281 tests, 1,797 assertions passed cleanly. ✅ done 2026-08-28
+
+
+## PHASE 64 — TEACHER ACADEMIC ASSIGNMENT, WORKLOAD & ATTENDANCE SYSTEM ✅ COMPLETE 2026-08-29
+
+> **Benchmark Standards (YemenSoft Onyx Pro ERP, ERPNext, Odoo Academic Management):**
+> Comprehensive overhaul of teacher academic assignment, teaching history tracking, operational class session execution, substitute teacher management, workplace attendance vs session workload separation, and hourly payroll integration.
+
+- [x] **Migration `create_teacher_assignments_table`** — `staff_id`, `course_batch_id`, `role` (`primary`, `co_teacher`, `assistant`, `substitute`), `start_date`, `end_date`, `is_active`, `notes`, `created_by`, `timestamps`. ✅ done 2026-08-29
+- [x] **Migration `create_teaching_sessions_table`** — `course_batch_id`, `period_id`, `primary_teacher_id`, `actual_teacher_id`, `date`, `status` (`completed`, `cancelled`, `postponed`, `substituted`), `planned_hours`, `actual_hours`, `cancellation_reason`, `notes`, `created_by`, `timestamps`, unique index `(course_batch_id, date, period_id)`. ✅ done 2026-08-29
+- [x] **Migration `add_teaching_session_id_to_attendance_sessions_table`** — Links student attendance header `attendance_sessions` to `teaching_sessions`. ✅ done 2026-08-29
+- [x] **Models & Relations (`TeacherAssignment`, `TeachingSession`, `Staff`, `CourseBatch`, `AttendanceSession`)** — Fillables, casts, relations, scopes, and helper methods. ✅ done 2026-08-29
+- [x] **`CourseBatchResource` & `CourseBatchObserver` Enhancements** — TeacherAssignmentsRelationManager for managing teacher assignments history and auto-closing previous active assignments. ✅ done 2026-08-29
+- [x] **`StaffResource` Teaching Assignments Tab** — Historical view of all batches assigned to a staff member over time. ✅ done 2026-08-29
+- [x] **`TeachingSessionResource` & `TeachingSessionObserver`** — Unified Filament resource for recording class sessions, selecting primary vs substitute teachers, logging status, auto-linking student attendance `AttendanceSession`. ✅ done 2026-08-29
+- [x] **`StaffAttendanceResource` Refactoring** — Workplace attendance decoupled from batch-hours logic. ✅ done 2026-08-29
+- [x] **Workload Aggregation Service & `Staff::getEarnedSalaryForMonth()`** — Computes per-hour salary strictly from completed/substituted `teaching_sessions` where `actual_teacher_id = staff_id`. ✅ done 2026-08-29
+- [x] **Period Closure Locks & Data Protection Observers** — Prevent editing sessions in closed/approved payroll months via `TeachingSessionObserver`. ✅ done 2026-08-29
+- [x] **Localization & Automated Test Suite Verification** — Added keys to BOTH `lang/en/general.php` and `lang/ar/general.php` and attributes to `validation.php`. `/usr/bin/php artisan strings:audit` returned 0 findings. Created `TeacherAcademicAssignmentAndWorkloadTest.php` (3 tests, 9 assertions passed cleanly). ✅ done 2026-08-29
+
+
+
 

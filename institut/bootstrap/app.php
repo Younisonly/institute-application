@@ -16,6 +16,10 @@ return Application::configure(basePath: dirname(__DIR__))
             'livewire/*',
         ]);
 
+        $middleware->encryptCookies(except: [
+            'locale',
+        ]);
+
         $middleware->web(append: [
             \App\Http\Middleware\SetLocale::class,
         ]);

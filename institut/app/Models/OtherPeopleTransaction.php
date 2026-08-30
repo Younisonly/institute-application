@@ -8,7 +8,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 class OtherPeopleTransaction extends Model
 {
     protected $fillable = [
-        'other_person_id', 'type', 'amount', 'date', 'method', 'bank_id', 'wallet_id', 'transaction_ref',
+        'other_person_id', 'type', 'amount', 'date', 'method', 'bank_id', 'wallet_id', 'cashbox_id', 'transaction_ref',
         'income_category_id', 'expense_category_id', 'description', 'receipt_no',
         'voided_at', 'void_reason', 'voided_by', 'created_by', 'journal_entry_id',
     ];
@@ -31,6 +31,11 @@ class OtherPeopleTransaction extends Model
     public function wallet(): BelongsTo
     {
         return $this->belongsTo(Wallet::class);
+    }
+
+    public function cashbox(): BelongsTo
+    {
+        return $this->belongsTo(Cashbox::class);
     }
 
     public function incomeCategory(): BelongsTo

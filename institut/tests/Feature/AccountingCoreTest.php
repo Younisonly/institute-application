@@ -284,14 +284,21 @@ class AccountingCoreTest extends TestCase
         StaffTransaction::query()->create(['staff_id' => $staff->id, 'type' => 'repayment', 'amount' => 2000, 'date' => '2026-02-10']);
         StaffTransaction::query()->create(['staff_id' => $staff->id, 'type' => 'salary', 'amount' => 45000, 'date' => '2026-02-28']);
 
+        // Default Advances mode: pure salary cash disbursement is excluded from advances ledger
         $report = app(ReportService::class)->partyLedger('staff', $staff->id,
             \Illuminate\Support\Carbon::parse('2026-02-01'), \Illuminate\Support\Carbon::parse('2026-02-28'));
 
-        $this->assertSame(3, $report['rows']->count());
+        $this->assertSame(2, $report['rows']->count());
         $this->assertSame(5000.0, (float) $report['rows'][0]['debit']);
         $this->assertSame(2000.0, (float) $report['rows'][1]['credit']);
-        $this->assertSame(45000.0, (float) $report['rows'][2]['credit']);
         $this->assertSame(3000.0, (float) $report['closing']);
+
+        // Comprehensive mode: includes salary entitlements and payouts
+        $compReport = app(ReportService::class)->partyLedger('staff', $staff->id,
+            \Illuminate\Support\Carbon::parse('2026-02-01'), \Illuminate\Support\Carbon::parse('2026-02-28'), 'comprehensive');
+
+        $this->assertSame(4, $compReport['rows']->count());
+        $this->assertSame(3000.0, (float) $compReport['closing']);
     }
 
     public function test_party_statement_supplier_merges_purchases_and_payments(): void

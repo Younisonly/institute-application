@@ -26,6 +26,11 @@ class Course extends Model
         'teacher_id',
         'months',
         'price',
+        'hours_per_session',
+        'number_of_sessions',
+        'total_planned_hours',
+        'working_days',
+        'break_duration',
         'description',
         'capacity',
         'is_active',
@@ -40,6 +45,11 @@ class Course extends Model
         return [
             'months'   => 'integer',
             'price'    => 'decimal:2',
+            'hours_per_session' => 'decimal:2',
+            'number_of_sessions' => 'integer',
+            'total_planned_hours' => 'integer',
+            'working_days' => 'array',
+            'break_duration' => 'integer',
             'capacity' => 'integer',
             'is_active' => 'boolean',
             'full_mark' => 'integer',
@@ -47,6 +57,17 @@ class Course extends Model
             'grading_schema' => 'array',
             'required_supplies' => 'array',
         ];
+    }
+
+    protected static function booted(): void
+    {
+        static::saving(function (Course $course): void {
+            $daily = (float) ($course->hours_per_session ?? 0);
+            $total = (float) ($course->total_planned_hours ?? 0);
+            if ($daily > 0 && $total > 0) {
+                $course->number_of_sessions = (int) ceil($total / $daily);
+            }
+        });
     }
 
     // -------------------------------------------------------------------------

@@ -73,6 +73,7 @@ class PrintController extends Controller
             $data = $request->validate([
                 'party_type' => 'required|in:student,staff,supplier,other',
                 'party_id' => 'required|integer',
+                'staff_statement_mode' => 'nullable|string|in:advances,comprehensive',
                 'from' => 'nullable|date',
                 'to' => 'nullable|date',
             ]);
@@ -82,6 +83,7 @@ class PrintController extends Controller
                 (int) $data['party_id'],
                 ! empty($data['from']) ? \Illuminate\Support\Carbon::parse($data['from']) : null,
                 ! empty($data['to']) ? \Illuminate\Support\Carbon::parse($data['to']) : null,
+                $data['staff_statement_mode'] ?? 'advances',
             );
 
             return view('prints.party-statement', [
@@ -477,5 +479,13 @@ class PrintController extends Controller
         $writer->close();
 
         return response('');
+    }
+
+    public function shiftVoucher(\App\Models\CashboxShift $shift)
+    {
+        return view('prints.shift-closing-voucher', [
+            'shift' => $shift->load(['cashbox', 'user', 'closedBy']),
+            'autoPrint' => true,
+        ]);
     }
 }

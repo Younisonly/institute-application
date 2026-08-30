@@ -21,6 +21,7 @@ class ChartOfAccountsSeeder extends Seeder
             ['code' => '1520', 'ar' => 'مخزون المستلزمات', 'en' => 'Items inventory', 'type' => 'asset', 'system' => true],
             // Liabilities
             ['code' => '2110', 'ar' => 'ذمم الموردين', 'en' => 'Suppliers payable', 'type' => 'liability', 'system' => true],
+            ['code' => '2120', 'ar' => 'مستحقات رواتب الموظفين', 'en' => 'Staff salary payable', 'type' => 'liability', 'system' => true],
             // Equity
             ['code' => '3100', 'ar' => 'رأس المال', 'en' => 'Capital', 'type' => 'equity', 'system' => true],
             ['code' => '3200', 'ar' => 'الأرباح المرحلة', 'en' => 'Retained earnings', 'type' => 'equity', 'system' => true],
@@ -29,6 +30,7 @@ class ChartOfAccountsSeeder extends Seeder
             ['code' => '4200', 'ar' => 'مبيعات الكتب', 'en' => 'Book sales', 'type' => 'income', 'system' => true],
             ['code' => '4300', 'ar' => 'مبيعات المستلزمات', 'en' => 'Items sales', 'type' => 'income', 'system' => true],
             ['code' => '4400', 'ar' => 'إيرادات أخرى', 'en' => 'Other income', 'type' => 'income', 'system' => true],
+            ['code' => '4510', 'ar' => 'خصومات وجزاءات الموظفين', 'en' => 'Staff penalty income', 'type' => 'income', 'system' => true],
             // Expenses
             ['code' => '5100', 'ar' => 'الرواتب', 'en' => 'Salaries', 'type' => 'expense', 'system' => true],
             ['code' => '5900', 'ar' => 'نفقات أخرى', 'en' => 'Other expenses', 'type' => 'expense', 'system' => true],

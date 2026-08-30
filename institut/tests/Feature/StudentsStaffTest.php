@@ -185,6 +185,42 @@ class StudentsStaffTest extends TestCase
 
         $this->assertEquals(25000, $fresh->outstanding_advance);
         $this->assertEquals(50000, $fresh->total_salary_paid);
+
+        $plain = Staff::find($staff->id);
+        $this->assertEquals(25000, $plain->outstanding_advance);
+    }
+
+    public function test_salary_payment_with_advance_deduction_creates_both_transactions(): void
+    {
+        $job = JobTitle::create(['name' => 'أستاذ أحياء']);
+        $staff = Staff::create([
+            'name' => 'Tariq',
+            'job_title_id' => $job->id,
+            'salary_type' => 'monthly',
+            'salary_value' => 80000,
+            'status' => 'active',
+        ]);
+
+        StaffTransaction::create(['staff_id' => $staff->id, 'type' => 'advance', 'amount' => 10000, 'date' => now()]);
+
+        StaffTransaction::create([
+            'staff_id' => $staff->id,
+            'type' => 'salary',
+            'amount' => 70000,
+            'salary_month' => now()->format('Y-m'),
+            'date' => now(),
+        ]);
+
+        StaffTransaction::create([
+            'staff_id' => $staff->id,
+            'type' => 'deduction',
+            'amount' => 10000,
+            'salary_month' => now()->format('Y-m'),
+            'date' => now(),
+        ]);
+
+        $this->assertEquals(0, $staff->fresh()->outstanding_advance);
+        $this->assertEquals(70000, $staff->fresh()->total_salary_paid);
     }
 
     public function test_voiding_staff_advance_updates_outstanding(): void

@@ -16,9 +16,14 @@ class User extends Authenticatable implements FilamentUser
     /** @use HasFactory<UserFactory> */
     use HasFactory, HasRoles, Notifiable;
 
-    protected $fillable = ['name', 'email', 'password'];
+    protected $fillable = ['name', 'email', 'password', 'default_cashbox_id'];
 
     protected $hidden = ['password', 'remember_token'];
+
+    public function defaultCashbox(): \Illuminate\Database\Eloquent\Relations\BelongsTo
+    {
+        return $this->belongsTo(Cashbox::class, 'default_cashbox_id');
+    }
 
     public function canAccessPanel(Panel $panel): bool
     {

@@ -83,9 +83,19 @@ class Student extends Model
      */
     public function getBalanceAttribute(): float
     {
-        return (float) ($this->charges ?? 0)
-            - (float) ($this->payments ?? 0)
-            + (float) ($this->refunds ?? 0);
+        $charges = array_key_exists('charges', $this->attributes)
+            ? (float) $this->attributes['charges']
+            : (float) $this->transactions()->where('type', 'charge')->whereNull('voided_at')->sum('amount');
+
+        $payments = array_key_exists('payments', $this->attributes)
+            ? (float) $this->attributes['payments']
+            : (float) $this->transactions()->where('type', 'payment')->whereNull('voided_at')->sum('amount');
+
+        $refunds = array_key_exists('refunds', $this->attributes)
+            ? (float) $this->attributes['refunds']
+            : (float) $this->transactions()->where('type', 'refund')->whereNull('voided_at')->sum('amount');
+
+        return $charges - $payments + $refunds;
     }
 
     public function scopeWithBalance(Builder $query): Builder

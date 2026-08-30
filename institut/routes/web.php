@@ -12,6 +12,8 @@ Route::post('/locale/switch', function (\Illuminate\Http\Request $request) {
     if (in_array($locale, ['ar', 'en'], true)) {
         session(['locale' => $locale]);
         app()->setLocale($locale);
+
+        return back()->withCookie(cookie()->forever('locale', $locale));
     }
 
     return back();
@@ -78,6 +80,9 @@ Route::middleware(['auth', 'role:admin|accountant|registrar'])->group(function (
 
     Route::get('/supplier-vouchers/{transaction}/print', [PrintController::class, 'supplierVoucher'])
         ->name('vouchers.supplier.print');
+
+    Route::get('/shifts/{shift}/print', [PrintController::class, 'shiftVoucher'])
+        ->name('shifts.print');
 });
 
 Route::middleware(['auth', 'role:admin|accountant|registrar|teacher'])->group(function (): void {

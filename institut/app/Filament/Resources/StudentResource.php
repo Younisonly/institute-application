@@ -32,6 +32,11 @@ class StudentResource extends Resource
     use HasGuardedDeletes;
     use HasRbac;
 
+    public static function getEloquentQuery(): \Illuminate\Database\Eloquent\Builder
+    {
+        return parent::getEloquentQuery()->withBalance();
+    }
+
     protected static function accessRoles(): array
     {
         return ['admin', 'accountant', 'registrar', 'teacher'];

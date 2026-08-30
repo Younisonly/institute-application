@@ -10,6 +10,7 @@ use App\Models\Course;
 use App\Models\Item;
 use App\Models\Period;
 use App\Models\InstituteSetting;
+use Filament\Forms\Components\CheckboxList;
 use Filament\Forms\Components\DatePicker;
 use Filament\Forms\Components\Placeholder;
 use Filament\Forms\Components\Repeater;
@@ -17,6 +18,7 @@ use Filament\Forms\Components\Section;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
+use Filament\Forms\Components\TimePicker;
 use Filament\Forms\Components\Toggle;
 use Filament\Forms\Form;
 use Filament\Forms\Get;
@@ -123,7 +125,62 @@ class CourseResource extends Resource
                             ->helperText(__('general.capacity_hint')),
                         Toggle::make('is_active')->label(__('general.active'))->default(true),
                     ]),
-Section::make(__('general.grading_structure'))
+                Section::make(__('general.course_workload'))
+                    ->columns(3)
+                    ->schema([
+                        TextInput::make('hours_per_session')
+                            ->label(__('general.daily_hours'))
+                            ->numeric()
+                            ->default(2.00)
+                            ->required()
+                            ->live()
+                            ->afterStateUpdated(function (Get $get, Set $set): void {
+                                $daily = (float) ($get('hours_per_session') ?? 0);
+                                $total = (float) ($get('total_planned_hours') ?? 0);
+                                if ($daily > 0 && $total > 0) {
+                                    $set('number_of_sessions', (int) ceil($total / $daily));
+                                }
+                            }),
+                        TextInput::make('total_planned_hours')
+                            ->label(__('general.total_hours'))
+                            ->numeric()
+                            ->default(30)
+                            ->required()
+                            ->live()
+                            ->afterStateUpdated(function (Get $get, Set $set): void {
+                                $daily = (float) ($get('hours_per_session') ?? 0);
+                                $total = (float) ($get('total_planned_hours') ?? 0);
+                                if ($daily > 0 && $total > 0) {
+                                    $set('number_of_sessions', (int) ceil($total / $daily));
+                                }
+                            }),
+                        TextInput::make('number_of_sessions')
+                            ->label(__('general.number_of_sessions'))
+                            ->numeric()
+                            ->default(15)
+                            ->readOnly()
+                            ->dehydrated()
+                            ->helperText(__('general.auto_calculated_from_total_and_daily_hours')),
+                        TextInput::make('break_duration')
+                            ->label(__('general.break_duration'))
+                            ->numeric()
+                            ->default(0)
+                            ->suffix('min'),
+                        CheckboxList::make('working_days')
+                            ->label(__('general.working_days'))
+                            ->options([
+                                'sun' => __('general.day_sun'),
+                                'mon' => __('general.day_mon'),
+                                'tue' => __('general.day_tue'),
+                                'wed' => __('general.day_wed'),
+                                'thu' => __('general.day_thu'),
+                                'fri' => __('general.day_fri'),
+                                'sat' => __('general.day_sat'),
+                            ])
+                            ->columns(4)
+                            ->columnSpanFull(),
+                    ]),
+                Section::make(__('general.grading_structure'))
                     ->columns(1)
                     ->schema([
                         TextInput::make('full_mark')

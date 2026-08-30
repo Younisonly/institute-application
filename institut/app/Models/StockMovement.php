@@ -20,6 +20,7 @@ class StockMovement extends Model
         'method',
         'bank_id',
         'wallet_id',
+        'cashbox_id',
         'transaction_ref',
         'date',
         'registration_item_id',
@@ -65,6 +66,11 @@ class StockMovement extends Model
     public function wallet(): BelongsTo
     {
         return $this->belongsTo(Wallet::class);
+    }
+
+    public function cashbox(): BelongsTo
+    {
+        return $this->belongsTo(Cashbox::class);
     }
 
     public function journalEntry(): BelongsTo

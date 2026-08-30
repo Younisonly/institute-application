@@ -64,6 +64,7 @@ class AccountStatement extends Page implements HasForms, HasTable
             'account_id' => request()->integer('account_id') ?: null,
             'party_type' => request()->string('party_type')->toString() ?: '',
             'party_id' => request()->integer('party_id') ?: null,
+            'staff_statement_mode' => request()->string('staff_statement_mode')->toString() ?: 'advances',
             'from' => request('from'),
             'to' => request('to'),
         ]);
@@ -105,6 +106,18 @@ class AccountStatement extends Page implements HasForms, HasTable
                     ->preload()
                     ->required(fn (Get $get): bool => ! blank($get('party_type')))
                     ->hidden(fn (Get $get): bool => blank($get('party_type')))
+                    ->live()
+                    ->afterStateUpdated(function (): void {
+                        $this->resetTable();
+                    }),
+                Select::make('staff_statement_mode')->native(false)
+                    ->label(__('general.staff_statement_mode'))
+                    ->options([
+                        'advances' => __('general.staff_advances_statement'),
+                        'comprehensive' => __('general.staff_comprehensive_statement'),
+                    ])
+                    ->default('advances')
+                    ->hidden(fn (Get $get): bool => $get('party_type') !== 'staff')
                     ->live()
                     ->afterStateUpdated(function (): void {
                         $this->resetTable();
@@ -184,6 +197,7 @@ class AccountStatement extends Page implements HasForms, HasTable
             (int) $this->data['party_id'],
             $this->fromDate(),
             $this->toDate(),
+            (string) ($this->data['staff_statement_mode'] ?? 'advances'),
         );
     }
 
@@ -238,14 +252,19 @@ class AccountStatement extends Page implements HasForms, HasTable
 
     private function staffTable(Table $table, int $partyId, ?\Illuminate\Support\Carbon $from, ?\Illuminate\Support\Carbon $to, array $statements): Table
     {
+        $staffMode = (string) ($this->data['staff_statement_mode'] ?? 'advances');
+
+        $query = StaffTransaction::query()
+            ->where('staff_id', $partyId)
+            ->whereNull('voided_at')
+            ->when($staffMode === 'advances', fn ($q) => $q->whereIn('type', ['advance', 'repayment', 'deduction']))
+            ->when($from, fn ($q, $v) => $q->whereDate('date', '>=', $v->toDateString()))
+            ->when($to, fn ($q, $v) => $q->whereDate('date', '<=', $v->toDateString()))
+            ->orderBy('date')
+            ->orderBy('id');
+
         return $table
-            ->query(StaffTransaction::query()
-                ->where('staff_id', $partyId)
-                ->whereNull('voided_at')
-                ->when($from, fn ($q, $v) => $q->whereDate('date', '>=', $v->toDateString()))
-                ->when($to, fn ($q, $v) => $q->whereDate('date', '<=', $v->toDateString()))
-                ->orderBy('date')
-                ->orderBy('id'))
+            ->query($query)
             ->columns([
                 TextColumn::make('date')->label(__('general.date'))->date('d/m/Y'),
                 TextColumn::make('reference')->label(__('general.reference'))->placeholder('—'),
@@ -267,13 +286,13 @@ class AccountStatement extends Page implements HasForms, HasTable
                 TextColumn::make('debit')
                     ->label(__('general.debit'))
                     ->alignment(\Filament\Support\Enums\Alignment::End)
-                    ->state(fn (StaffTransaction $r): string => $r->type === 'advance' ? number_format((float) $r->amount) : '0')
-                    ->summarize(Summarizer::make()->label(__('general.total'))->using(fn ($query): float => (float) $query->get()->filter(fn ($r) => $r->type === 'advance')->sum('amount'))->formatStateUsing(fn (float $state): string => number_format($state).' '.__('general.currency'))),
+                    ->state(fn (StaffTransaction $r): string => in_array($r->type, ['advance', 'salary'], true) ? number_format((float) $r->amount) : '0')
+                    ->summarize(Summarizer::make()->label(__('general.total'))->using(fn (): float => (float) ($statements['totalDebit'] ?? 0))->formatStateUsing(fn (float $state): string => number_format($state).' '.__('general.currency'))),
                 TextColumn::make('credit')
                     ->label(__('general.credit'))
                     ->alignment(\Filament\Support\Enums\Alignment::End)
-                    ->state(fn (StaffTransaction $r): string => $r->type !== 'advance' ? number_format((float) $r->amount) : '0')
-                    ->summarize(Summarizer::make()->label(__('general.total'))->using(fn ($query): float => (float) $query->get()->filter(fn ($r) => $r->type !== 'advance')->sum('amount'))->formatStateUsing(fn (float $state): string => number_format($state).' '.__('general.currency'))),
+                    ->state(fn (StaffTransaction $r): string => in_array($r->type, ['repayment', 'deduction'], true) ? number_format((float) $r->amount) : '0')
+                    ->summarize(Summarizer::make()->label(__('general.total'))->using(fn (): float => (float) ($statements['totalCredit'] ?? 0))->formatStateUsing(fn (float $state): string => number_format($state).' '.__('general.currency'))),
                 TextColumn::make('balance')
                     ->label(__('general.balance'))
                     ->alignment(\Filament\Support\Enums\Alignment::End)
@@ -581,6 +600,7 @@ class AccountStatement extends Page implements HasForms, HasTable
                     'account_id' => $this->data['account_id'] ?? '',
                     'party_type' => $this->data['party_type'] ?? '',
                     'party_id' => $this->data['party_id'] ?? '',
+                    'staff_statement_mode' => $this->data['staff_statement_mode'] ?? 'advances',
                     'from' => $this->data['from'] ?? '',
                     'to' => $this->data['to'] ?? '',
                 ]))

@@ -9,14 +9,18 @@ class StaffTransaction extends Model
 {
     protected $fillable = [
         'staff_id',
+        'payroll_period_id',
         'type',
         'amount',
+        'penalty_amount',
+        'advance_deduction_amount',
         'date',
         'reference',
         'salary_month',
         'method',
         'bank_id',
         'wallet_id',
+        'cashbox_id',
         'transaction_ref',
         'journal_entry_id',
         'description',
@@ -34,6 +38,8 @@ class StaffTransaction extends Model
     {
         return [
             'amount' => 'decimal:2',
+            'penalty_amount' => 'decimal:2',
+            'advance_deduction_amount' => 'decimal:2',
             'rate_snapshot' => 'decimal:2',
             'hours_snapshot' => 'decimal:2',
             'percentage_snapshot' => 'decimal:2',
@@ -47,6 +53,11 @@ class StaffTransaction extends Model
         return $this->belongsTo(Staff::class)->withTrashed();
     }
 
+    public function payrollPeriod(): BelongsTo
+    {
+        return $this->belongsTo(StaffPayrollPeriod::class, 'payroll_period_id');
+    }
+
     public function bank(): BelongsTo
     {
         return $this->belongsTo(Bank::class);
@@ -55,6 +66,11 @@ class StaffTransaction extends Model
     public function wallet(): BelongsTo
     {
         return $this->belongsTo(Wallet::class);
+    }
+
+    public function cashbox(): BelongsTo
+    {
+        return $this->belongsTo(Cashbox::class);
     }
 
     public function journalEntry(): BelongsTo

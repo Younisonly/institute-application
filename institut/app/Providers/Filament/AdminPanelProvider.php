@@ -21,6 +21,7 @@ use Filament\Panel;
 use Filament\PanelProvider;
 use Filament\Support\Colors\Color;
 use Filament\Tables\Table;
+use Filament\Navigation\NavigationGroup;
 use Filament\Support\Facades\FilamentView;
 use Filament\View\PanelsRenderHook;
 
@@ -81,6 +82,26 @@ class AdminPanelProvider extends PanelProvider
             ->plugin(ThemePlugin::make())
             ->colors($colors)
             ->theme(asset('css/filament/admin/theme.css'))
+            ->navigationGroups([
+                NavigationGroup::make()
+                    ->label(fn (): string => __('general.nav_students_courses')),
+                NavigationGroup::make()
+                    ->label(fn (): string => __('general.nav_staff')),
+                NavigationGroup::make()
+                    ->label(fn (): string => __('general.nav_parties')),
+                NavigationGroup::make()
+                    ->label(fn (): string => __('general.nav_inventory')),
+                NavigationGroup::make()
+                    ->label(fn (): string => __('general.nav_places')),
+                NavigationGroup::make()
+                    ->label(fn (): string => __('general.nav_finance')),
+                NavigationGroup::make()
+                    ->label(fn (): string => __('general.nav_ledger')),
+                NavigationGroup::make()
+                    ->label(fn (): string => __('general.nav_reports')),
+                NavigationGroup::make()
+                    ->label(fn (): string => __('general.nav_settings')),
+            ])
             ->discoverResources(in: app_path('Filament/Resources'), for: 'App\\Filament\\Resources')
             ->discoverPages(in: app_path('Filament/Pages'), for: 'App\\Filament\\Pages')
             ->pages([
@@ -107,6 +128,7 @@ class AdminPanelProvider extends PanelProvider
                 SubstituteBindings::class,
                 DisableBladeIconComponents::class,
                 DispatchServingFilamentEvent::class,
+                \App\Http\Middleware\SetLocale::class,
             ])
             ->authMiddleware([
                 Authenticate::class,

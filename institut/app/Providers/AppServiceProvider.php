@@ -40,6 +40,8 @@ class AppServiceProvider extends ServiceProvider
         \App\Models\Wallet::observe(\App\Observers\WalletObserver::class);
         \App\Models\ExpenseCategory::observe(\App\Observers\ExpenseCategoryObserver::class);
         \App\Models\IncomeCategory::observe(\App\Observers\IncomeCategoryObserver::class);
+        \App\Models\CourseBatch::observe(\App\Observers\CourseBatchObserver::class);
+        \App\Models\TeachingSession::observe(\App\Observers\TeachingSessionObserver::class);
 
         \Illuminate\Support\Facades\View::composer('prints.*', function (\Illuminate\View\View $view): void {
             $view->with('settings', \App\Models\InstituteSetting::current());

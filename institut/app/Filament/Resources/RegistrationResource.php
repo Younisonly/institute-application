@@ -43,6 +43,11 @@ class RegistrationResource extends Resource
 {
     use HasRbac;
 
+    public static function getEloquentQuery(): Builder
+    {
+        return parent::getEloquentQuery()->withTotals();
+    }
+
     protected static function accessRoles(): array
     {
         return ['admin', 'accountant', 'registrar'];

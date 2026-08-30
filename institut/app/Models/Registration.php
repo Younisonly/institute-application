@@ -119,9 +119,19 @@ class Registration extends Model
      */
     public function getBalanceAttribute(): float
     {
-        return (float) ($this->charged ?? 0)
-            - (float) ($this->paid ?? 0)
-            + (float) ($this->refunded ?? 0);
+        $charged = array_key_exists('charged', $this->attributes)
+            ? (float) $this->attributes['charged']
+            : (float) $this->transactions()->whereIn('type', ['charge', 'transfer_debit'])->whereNull('voided_at')->sum('amount');
+
+        $paid = array_key_exists('paid', $this->attributes)
+            ? (float) $this->attributes['paid']
+            : (float) $this->transactions()->whereIn('type', ['payment', 'transfer_credit'])->whereNull('voided_at')->sum('amount');
+
+        $refunded = array_key_exists('refunded', $this->attributes)
+            ? (float) $this->attributes['refunded']
+            : (float) $this->transactions()->where('type', 'refund')->whereNull('voided_at')->sum('amount');
+
+        return $charged - $paid + $refunded;
     }
 
     public function getExpectedEndAttribute(): string

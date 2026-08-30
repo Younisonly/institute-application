@@ -57,6 +57,10 @@ class CourseBatch extends Model
         'end_date',
         'finished_at',
         'capacity',
+        'daily_hours',
+        'total_hours',
+        'working_days',
+        'break_duration',
         'teacher_id',
         'notes',
         'is_active',
@@ -71,6 +75,10 @@ class CourseBatch extends Model
     {
         return [
             'capacity' => 'integer',
+            'daily_hours' => 'decimal:2',
+            'total_hours' => 'integer',
+            'working_days' => 'array',
+            'break_duration' => 'integer',
             'is_active' => 'boolean',
             'fee_schedule' => 'array',
             'enrollment_start' => 'date',
@@ -145,6 +153,21 @@ class CourseBatch extends Model
     public function registrations(): HasMany
     {
         return $this->hasMany(Registration::class);
+    }
+
+    public function attendances(): HasMany
+    {
+        return $this->hasMany(StaffAttendance::class);
+    }
+
+    public function teacherAssignments(): HasMany
+    {
+        return $this->hasMany(TeacherAssignment::class);
+    }
+
+    public function teachingSessions(): HasMany
+    {
+        return $this->hasMany(TeachingSession::class);
     }
 
     /**

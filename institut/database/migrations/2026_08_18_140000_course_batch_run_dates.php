@@ -16,39 +16,47 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::table('courses', function (Blueprint $table) {
-            $table->date('start_date')->nullable()->after('course_end_month');
-            $table->date('end_date')->nullable()->after('start_date');
-            $table->index('start_date');
-            $table->index('end_date');
-        });
+        if (! Schema::hasColumn('courses', 'start_date')) {
+            Schema::table('courses', function (Blueprint $table) {
+                $table->date('start_date')->nullable();
+                $table->date('end_date')->nullable()->after('start_date');
+                $table->index('start_date');
+                $table->index('end_date');
+            });
 
-        DB::statement(
-            "UPDATE courses SET
-                start_date = IF(course_start_month IS NULL, NULL, STR_TO_DATE(CONCAT(course_start_month, '-01'), '%Y-%m-%d')),
-                end_date   = IF(course_end_month IS NULL, NULL, LAST_DAY(STR_TO_DATE(CONCAT(course_end_month, '-01'), '%Y-%m-%d')))"
-        );
+            if (Schema::hasColumn('courses', 'course_start_month')) {
+                DB::statement(
+                    "UPDATE courses SET
+                        start_date = IF(course_start_month IS NULL, NULL, STR_TO_DATE(CONCAT(course_start_month, '-01'), '%Y-%m-%d')),
+                        end_date   = IF(course_end_month IS NULL, NULL, LAST_DAY(STR_TO_DATE(CONCAT(course_end_month, '-01'), '%Y-%m-%d')))"
+                );
 
-        Schema::table('courses', function (Blueprint $table) {
-            $table->dropColumn(['course_start_month', 'course_end_month']);
-        });
+                Schema::table('courses', function (Blueprint $table) {
+                    $table->dropColumn(['course_start_month', 'course_end_month']);
+                });
+            }
+        }
 
-        Schema::table('course_batches', function (Blueprint $table) {
-            $table->date('start_date')->nullable()->after('end_month');
-            $table->date('end_date')->nullable()->after('start_date');
-            $table->index('start_date');
-            $table->index('end_date');
-        });
+        if (! Schema::hasColumn('course_batches', 'start_date')) {
+            Schema::table('course_batches', function (Blueprint $table) {
+                $table->date('start_date')->nullable();
+                $table->date('end_date')->nullable()->after('start_date');
+                $table->index('start_date');
+                $table->index('end_date');
+            });
 
-        DB::statement(
-            "UPDATE course_batches SET
-                start_date = IF(start_month IS NULL, NULL, STR_TO_DATE(CONCAT(start_month, '-01'), '%Y-%m-%d')),
-                end_date   = IF(end_month IS NULL, NULL, LAST_DAY(STR_TO_DATE(CONCAT(end_month, '-01'), '%Y-%m-%d')))"
-        );
+            if (Schema::hasColumn('course_batches', 'start_month')) {
+                DB::statement(
+                    "UPDATE course_batches SET
+                        start_date = IF(start_month IS NULL, NULL, STR_TO_DATE(CONCAT(start_month, '-01'), '%Y-%m-%d')),
+                        end_date   = IF(end_month IS NULL, NULL, LAST_DAY(STR_TO_DATE(CONCAT(end_month, '-01'), '%Y-%m-%d')))"
+                );
 
-        Schema::table('course_batches', function (Blueprint $table) {
-            $table->dropColumn(['start_month', 'end_month']);
-        });
+                Schema::table('course_batches', function (Blueprint $table) {
+                    $table->dropColumn(['start_month', 'end_month']);
+                });
+            }
+        }
     }
 
     public function down(): void

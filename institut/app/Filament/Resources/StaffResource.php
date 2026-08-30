@@ -30,6 +30,11 @@ class StaffResource extends Resource
     use HasGuardedDeletes;
     use HasRbac;
 
+    public static function getEloquentQuery(): \Illuminate\Database\Eloquent\Builder
+    {
+        return parent::getEloquentQuery()->withAccount();
+    }
+
     protected static function accessRoles(): array
     {
         return ['admin', 'accountant'];
@@ -256,6 +261,7 @@ class StaffResource extends Resource
         return [
             DocumentsRelationManager::class,
             TransactionsRelationManager::class,
+            StaffResource\RelationManagers\TeacherAssignmentsRelationManager::class,
         ];
     }
 
