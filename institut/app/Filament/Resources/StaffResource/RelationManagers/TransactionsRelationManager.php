@@ -273,6 +273,21 @@ class TransactionsRelationManager extends RelationManager
             $salaryAmount = (float) $data['amount'];
 
             if ($salaryAmount > 0) {
+                if (!empty($data['salary_month'])) {
+                    $alreadyPaid = StaffTransaction::query()
+                        ->where('staff_id', $staffId)
+                        ->where('type', 'salary')
+                        ->whereNull('voided_at')
+                        ->where('salary_month', $data['salary_month'])
+                        ->exists();
+
+                    if ($alreadyPaid) {
+                        throw ValidationException::withMessages([
+                            'salary_month' => __('general.already_paid_this_month'),
+                        ]);
+                    }
+                }
+
                 StaffTransaction::create([
                     'staff_id' => $staffId,
                     'type' => 'salary',

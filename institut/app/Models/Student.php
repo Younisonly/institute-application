@@ -78,7 +78,7 @@ class Student extends Model
     }
 
     /**
-     * Balance due = charges - payments + refunds (voided excluded).
+     * Balance due = charges - payments - written_off + refunds (voided excluded).
      * Derived from transactions ONLY — never stored/mutated directly.
      */
     public function getBalanceAttribute(): float
@@ -91,11 +91,15 @@ class Student extends Model
             ? (float) $this->attributes['payments']
             : (float) $this->transactions()->where('type', 'payment')->whereNull('voided_at')->sum('amount');
 
+        $writtenOff = array_key_exists('written_off', $this->attributes)
+            ? (float) $this->attributes['written_off']
+            : (float) $this->transactions()->where('type', 'write_off')->whereNull('voided_at')->sum('amount');
+
         $refunds = array_key_exists('refunds', $this->attributes)
             ? (float) $this->attributes['refunds']
             : (float) $this->transactions()->where('type', 'refund')->whereNull('voided_at')->sum('amount');
 
-        return $charges - $payments + $refunds;
+        return $charges - $payments - $writtenOff + $refunds;
     }
 
     public function scopeWithBalance(Builder $query): Builder
@@ -103,6 +107,7 @@ class Student extends Model
         return $query
             ->withSum(['transactions as charges' => fn ($q) => $q->where('type', 'charge')->whereNull('voided_at')], 'amount')
             ->withSum(['transactions as payments' => fn ($q) => $q->where('type', 'payment')->whereNull('voided_at')], 'amount')
+            ->withSum(['transactions as written_off' => fn ($q) => $q->where('type', 'write_off')->whereNull('voided_at')], 'amount')
             ->withSum(['transactions as refunds' => fn ($q) => $q->where('type', 'refund')->whereNull('voided_at')], 'amount');
     }
 }

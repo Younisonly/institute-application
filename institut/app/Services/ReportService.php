@@ -431,8 +431,9 @@ class ReportService
                             ->where('type', 'payment')
                             ->whereNull('voided_at')
                             ->whereBetween('date', [$from, $to])
-                            ->whereHas('registration.course', function ($q) use ($staff) {
-                                $q->where('teacher_id', $staff->id);
+                            ->where(function ($q) use ($staff) {
+                                $q->whereHas('registration.course', fn ($q2) => $q2->where('teacher_id', $staff->id))
+                                  ->orWhereHas('registration.batch', fn ($q3) => $q3->where('teacher_id', $staff->id));
                             })
                             ->sum('amount');
                         $amount = round(((float) $staff->percentage_value / 100) * $staffCollected, 2);

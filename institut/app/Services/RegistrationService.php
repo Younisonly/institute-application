@@ -157,10 +157,13 @@ class RegistrationService
 
             $payment = $data['payment_amount'] ?? null;
             if ($payment !== null && (float) $payment > 0) {
-                if ((float) $payment > $price) {
+                $registrationWithTotals = Registration::query()->withTotals()->find($registration->id);
+                $maxAllowedPayment = $registrationWithTotals ? (float) $registrationWithTotals->balance : $price;
+
+                if ((float) $payment > $maxAllowedPayment) {
                     throw ValidationException::withMessages([
                         'payment_amount' => __('general.payment_exceeds_net_price', [
-                            'price' => number_format($price).' '.__('general.currency'),
+                            'price' => number_format($maxAllowedPayment).' '.__('general.currency'),
                         ]),
                     ]);
                 }

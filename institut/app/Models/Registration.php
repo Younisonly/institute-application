@@ -127,11 +127,15 @@ class Registration extends Model
             ? (float) $this->attributes['paid']
             : (float) $this->transactions()->whereIn('type', ['payment', 'transfer_credit'])->whereNull('voided_at')->sum('amount');
 
+        $writtenOff = array_key_exists('written_off', $this->attributes)
+            ? (float) $this->attributes['written_off']
+            : (float) $this->transactions()->where('type', 'write_off')->whereNull('voided_at')->sum('amount');
+
         $refunded = array_key_exists('refunded', $this->attributes)
             ? (float) $this->attributes['refunded']
             : (float) $this->transactions()->where('type', 'refund')->whereNull('voided_at')->sum('amount');
 
-        return $charged - $paid + $refunded;
+        return $charged - $paid - $writtenOff + $refunded;
     }
 
     public function getExpectedEndAttribute(): string
@@ -158,6 +162,7 @@ class Registration extends Model
         return $query
             ->withSum(['transactions as charged' => fn ($q) => $q->whereIn('type', ['charge', 'transfer_debit'])->whereNull('voided_at')], 'amount')
             ->withSum(['transactions as paid' => fn ($q) => $q->whereIn('type', ['payment', 'transfer_credit'])->whereNull('voided_at')], 'amount')
+            ->withSum(['transactions as written_off' => fn ($q) => $q->where('type', 'write_off')->whereNull('voided_at')], 'amount')
             ->withSum(['transactions as refunded' => fn ($q) => $q->where('type', 'refund')->whereNull('voided_at')], 'amount');
     }
 
