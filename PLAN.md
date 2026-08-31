@@ -1111,5 +1111,19 @@ Configured immediate table refresh when selecting an account or party without re
 - [x] **Localization & Automated Test Suite Verification** — Added keys to BOTH `lang/en/general.php` and `lang/ar/general.php` and attributes to `validation.php`. `/usr/bin/php artisan strings:audit` returned 0 findings. Created `TeacherAcademicAssignmentAndWorkloadTest.php` (3 tests, 9 assertions passed cleanly). ✅ done 2026-08-29
 
 
+## PHASE 65 — PILOT HARDENING & FINAL PRODUCTION READINESS ✅ COMPLETE 2026-08-31
+
+> **Benchmark & Enterprise Quality Standards:**
+> Completed deep code audit, unified calculation engines, enforced server-side authorization boundaries, implemented attendance edit audit logging, added payroll overpayment guards, fixed month parsing calendar overflow bugs, and verified test suite integrity.
+
+- [x] **Unified Percentage Teacher Salary Model (`Staff::calculatePercentageSalaryForMonth`)** — Unified percentage teacher salary calculation between `Staff::getEarnedSalaryForMonth()`, `ReportService::salarySheet()`, and `StaffPayrollPeriod`. ✅ done 2026-08-31
+- [x] **Server-Side Teacher Batch Authorization (`BatchAttendance` & `BatchMarks`)** — Restricted course batch options for pure teacher role users to assigned batches only (`teacher_id = staff.id` or `teacherAssignments`); added server-side authorization checks throwing HTTP 403 / `ValidationException` on unauthorized batch access attempts. ✅ done 2026-08-31
+- [x] **Attendance Note Edit Governance & Audit Trail (`BatchAttendance::editAttendanceNoteAlpine`)** — Enforced server-side batch authorization and explicit `AuditLog` logging (`attendance_record.updated`) capturing `before`, `after`, and `by` user fields. ✅ done 2026-08-31
+- [x] **Payroll Overpayment Protection & Partial Payouts (`StaffTransactionObserver`)** — Strict validation preventing payouts on fully paid payroll periods (`remaining_payable <= 0`); populates `initialNet` accurately on auto-created initial payouts. ✅ done 2026-08-31
+- [x] **Calendar Month Parsing Overflow Fix (`RegistrationService`, `Registration`, `Staff`, `ReportService`)** — Appended `-01` to all `Y-m` date format strings (`Y-m-d`) when initializing Carbon instances, preventing day-31 overflow bugs during month generation and registration end-date calculations. ✅ done 2026-08-31
+- [x] **Automated Hardening Suite & Regression Verification** — Created `SeniorAuditHardeningTest.php` (4 tests, 16 assertions). Ran full PHPUnit test suite: **297 tests, 1,894 assertions — 100% Passed**. Ran `/usr/bin/php artisan strings:audit`: **0 unlocalized strings found**. ✅ done 2026-08-31
+
+
+
 
 
