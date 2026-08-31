@@ -224,8 +224,8 @@ class RegistrationService
             $carried = $totals->balance;
 
             $startMonth = InstituteSetting::current()->current_month ?: now()->format('Y-m');
-            $current = CarbonImmutable::createFromFormat('Y-m', $startMonth);
-            $expectedEnd = CarbonImmutable::createFromFormat('Y-m', $registration->expected_end);
+            $current = CarbonImmutable::createFromFormat('Y-m-d', $startMonth.'-01');
+            $expectedEnd = CarbonImmutable::createFromFormat('Y-m-d', $registration->expected_end.'-01');
             $monthsCount = max(1, $current->diffInMonths($expectedEnd) + 1);
 
             $batch = $this->resolveBatch($newCourse, $newBatchId);
@@ -602,7 +602,7 @@ class RegistrationService
      */
     public function generateMonths(Registration $registration, string $startMonth, int $count): void
     {
-        $start = CarbonImmutable::createFromFormat('Y-m', $startMonth);
+        $start = CarbonImmutable::createFromFormat('Y-m-d', $startMonth.'-01');
 
         for ($i = 0; $i < $count; $i++) {
             $monthStr = $start->addMonths($i)->format('Y-m');

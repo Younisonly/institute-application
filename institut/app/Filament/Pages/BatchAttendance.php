@@ -57,6 +57,58 @@ class BatchAttendance extends Page implements HasForms, HasTable
         return __('general.attendance');
     }
 
+    public static function getAuthorizedTeacherStaff(): ?\App\Models\Staff
+    {
+        $user = auth()->user();
+        if (! $user) {
+            return null;
+        }
+
+        $isPureTeacher = $user->hasRole('teacher') && ! $user->hasAnyRole(['admin', 'registrar']);
+        if (! $isPureTeacher) {
+            return null;
+        }
+
+        return \App\Models\Staff::query()
+            ->where('phone', $user->email)
+            ->orWhere('name', $user->name)
+            ->first();
+    }
+
+    public static function filterAuthorizedBatches(Builder $query): Builder
+    {
+        $user = auth()->user();
+        if (! $user) {
+            return $query->whereKey(0);
+        }
+
+        $isPureTeacher = $user->hasRole('teacher') && ! $user->hasAnyRole(['admin', 'registrar']);
+        if (! $isPureTeacher) {
+            return $query;
+        }
+
+        $staff = static::getAuthorizedTeacherStaff();
+        if (! $staff) {
+            return $query->whereKey(0);
+        }
+
+        return $query->where(function (Builder $q) use ($staff) {
+            $q->where('teacher_id', $staff->id)
+              ->orWhereHas('teacherAssignments', fn ($a) => $a->where('staff_id', $staff->id));
+        });
+    }
+
+    public static function isAuthorizedForBatch(int $batchId): bool
+    {
+        if ($batchId <= 0) {
+            return false;
+        }
+
+        return static::filterAuthorizedBatches(CourseBatch::query())
+            ->where('id', $batchId)
+            ->exists();
+    }
+
     public function form(Form $form): Form
     {
         return $form
@@ -68,9 +120,9 @@ class BatchAttendance extends Page implements HasForms, HasTable
                     ->preload()
                     ->live()
                     ->required()
-                    ->options(fn (): array => CourseBatch::query()
-                        ->whereNotIn('status', ['completed', 'cancelled'])
-                        ->orderByDesc('id')
+                    ->options(fn (): array => static::filterAuthorizedBatches(
+                        CourseBatch::query()->whereNotIn('status', ['completed', 'cancelled'])->orderByDesc('id')
+                    )
                         ->get()
                         ->mapWithKeys(fn (CourseBatch $batch): array => [
                             $batch->id => $batch->option_label.' — '.($batch->course?->name ?? ''),
@@ -278,6 +330,10 @@ class BatchAttendance extends Page implements HasForms, HasTable
     public function markAttendance(int $registrationId, string $date, string $status, ?string $note = null, ?string $changeReason = null): void
     {
         $batchId = (int) ($this->data['course_batch_id'] ?? 0);
+        if (! static::isAuthorizedForBatch($batchId)) {
+            abort(403, __('general.unauthorized_batch_access'));
+        }
+
         $batch = CourseBatch::find($batchId);
         $registration = Registration::find($registrationId);
 
@@ -318,18 +374,29 @@ class BatchAttendance extends Page implements HasForms, HasTable
 
     public function editAttendanceNoteAlpine(int $recordId, ?string $note = null, ?string $changeReason = null): void
     {
-        $record = AttendanceRecord::find($recordId);
-        if ($record) {
-            $record->update([
-                'note' => $note,
-                'change_reason' => $changeReason,
-                'corrected_at' => now(),
-                'corrected_by' => auth()->id(),
-            ]);
-            \Filament\Notifications\Notification::make()
-                ->title(__('general.note_updated'))
-                ->success()
-                ->send();
+        $record = AttendanceRecord::with('session')->find($recordId);
+        if (! $record || ! static::isAuthorizedForBatch($record->session?->course_batch_id ?? 0)) {
+            abort(403, __('general.unauthorized_batch_access'));
         }
+
+        $before = ['note' => $record->note, 'change_reason' => $record->change_reason];
+
+        $record->update([
+            'note' => $note,
+            'change_reason' => $changeReason,
+            'corrected_at' => now(),
+            'corrected_by' => auth()->id(),
+        ]);
+
+        \App\Models\AuditLog::log('attendance_record.updated', AttendanceRecord::class, $record->id, [
+            'before' => $before,
+            'after' => ['note' => $note, 'change_reason' => $changeReason],
+            'by' => auth()->id(),
+        ]);
+
+        \Filament\Notifications\Notification::make()
+            ->title(__('general.note_updated'))
+            ->success()
+            ->send();
     }
 }

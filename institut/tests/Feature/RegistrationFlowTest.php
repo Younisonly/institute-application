@@ -34,13 +34,12 @@ class RegistrationFlowTest extends TestCase
 
     private function makeCourse(): Course
     {
-        $type = ProgramType::create(['name' => 'Short', 'months_count' => 6]);
+        $type = ProgramType::create(['name' => 'Short', 'months_count' => 3]);
 
         return Course::create([
             'name' => 'English L1',
             'program_type_id' => $type->id,
-            
-            'months' => 6,
+            'months' => 3,
             'price' => 35000,
             'is_active' => true,
         ]);
@@ -55,7 +54,7 @@ class RegistrationFlowTest extends TestCase
             'student_id' => $student->id,
             'course_id' => $course->id,
             'start_month' => '2026-08',
-            'months_count' => 6,
+            'months_count' => 3,
             'price_snapshot' => 35000,
             'items' => [],
             'payment_amount' => 10000,
@@ -63,9 +62,10 @@ class RegistrationFlowTest extends TestCase
             'payment_date' => '2026-08-10',
         ], $this->admin()->id);
 
+        $months = $registration->months()->pluck('month')->all();
         $this->assertSame('active', $registration->status);
-        $this->assertSame(6, RegistrationMonth::query()->where('registration_id', $registration->id)->count());
-        $this->assertSame('2027-01', $registration->expected_end);
+        $this->assertSame(3, count($months));
+        $this->assertSame('2026-10', $registration->expected_end);
 
         $charged = StudentTransaction::query()->where('registration_id', $registration->id)->where('type', 'charge')->sum('amount');
         $paid = StudentTransaction::query()->where('registration_id', $registration->id)->where('type', 'payment')->sum('amount');

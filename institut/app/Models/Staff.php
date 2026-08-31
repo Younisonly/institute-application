@@ -112,11 +112,28 @@ class Staff extends Model
         }
 
         if ($this->salary_type === 'percentage') {
-            // Calculated percentage of collected registration fees for courses taught
-            return (float) $this->salary_value; // fallback default
+            return $this->calculatePercentageSalaryForMonth($month);
         }
 
         return (float) $this->salary_value;
+    }
+
+    public function calculatePercentageSalaryForMonth(string $month): float
+    {
+        $start = \Carbon\CarbonImmutable::createFromFormat('Y-m-d', $month.'-01')->startOfMonth()->toDateString();
+        $end = \Carbon\CarbonImmutable::createFromFormat('Y-m-d', $month.'-01')->endOfMonth()->toDateString();
+
+        $staffCollected = (float) StudentTransaction::query()
+            ->where('type', 'payment')
+            ->whereNull('voided_at')
+            ->whereBetween('date', [$start, $end])
+            ->where(function ($q) {
+                $q->whereHas('registration.course', fn ($q2) => $q2->where('teacher_id', $this->id))
+                  ->orWhereHas('registration.batch', fn ($q3) => $q3->where('teacher_id', $this->id));
+            })
+            ->sum('amount');
+
+        return round(((float) $this->percentage_value / 100) * $staffCollected, 2);
     }
 
     /**

@@ -95,9 +95,9 @@ class BatchMarks extends Page implements HasForms, HasTable
                             return [];
                         }
 
-                        return CourseBatch::query()
-                            ->where('course_id', $courseId)
-                            ->orderByDesc('id')
+                        return BatchAttendance::filterAuthorizedBatches(
+                            CourseBatch::query()->where('course_id', $courseId)->orderByDesc('id')
+                        )
                             ->get()
                             ->mapWithKeys(fn (CourseBatch $batch): array => [
                                 $batch->id => $batch->option_label,
@@ -351,6 +351,10 @@ class BatchMarks extends Page implements HasForms, HasTable
                         ];
                     })
                     ->action(function (Registration $record, array $data): void {
+                        if (! BatchAttendance::isAuthorizedForBatch((int) $record->course_batch_id)) {
+                            abort(403, __('general.unauthorized_batch_access'));
+                        }
+
                         if (isset($data['grades'])) {
                             $record->saveGradeComponents($data['grades'], (int) auth()->id());
                         } else {

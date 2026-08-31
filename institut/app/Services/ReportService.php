@@ -174,7 +174,7 @@ class ReportService
      */
     public function profit(string $month): array
     {
-        $from = CarbonImmutable::createFromFormat('Y-m', $month)->startOfMonth();
+        $from = CarbonImmutable::createFromFormat('Y-m-d', $month.'-01')->startOfMonth();
         $to = $from->endOfMonth();
 
         $totals = JournalEntryLine::query()
@@ -392,7 +392,7 @@ class ReportService
      */
     public function salarySheet(string $month): array
     {
-        $from = CarbonImmutable::createFromFormat('Y-m', $month)->startOfMonth();
+        $from = CarbonImmutable::createFromFormat('Y-m-d', $month.'-01')->startOfMonth();
         $to = $from->endOfMonth();
 
         $collected = (float) StudentTransaction::query()
@@ -427,16 +427,7 @@ class ReportService
                 } else {
                     $salaryType = $staff->salary_type;
                     if ($staff->salary_type === 'percentage') {
-                        $staffCollected = (float) StudentTransaction::query()
-                            ->where('type', 'payment')
-                            ->whereNull('voided_at')
-                            ->whereBetween('date', [$from, $to])
-                            ->where(function ($q) use ($staff) {
-                                $q->whereHas('registration.course', fn ($q2) => $q2->where('teacher_id', $staff->id))
-                                  ->orWhereHas('registration.batch', fn ($q3) => $q3->where('teacher_id', $staff->id));
-                            })
-                            ->sum('amount');
-                        $amount = round(((float) $staff->percentage_value / 100) * $staffCollected, 2);
+                        $amount = $staff->calculatePercentageSalaryForMonth($month);
                     } else {
                         $amount = match ($staff->salary_type) {
                             'monthly' => (float) $staff->salary_value,

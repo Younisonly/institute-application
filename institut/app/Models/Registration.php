@@ -140,7 +140,7 @@ class Registration extends Model
 
     public function getExpectedEndAttribute(): string
     {
-        return CarbonImmutable::createFromFormat('Y-m', $this->start_month)
+        return CarbonImmutable::createFromFormat('Y-m-d', $this->start_month.'-01')
             ->addMonths($this->months_count - 1)
             ->format('Y-m');
     }
@@ -151,7 +151,7 @@ class Registration extends Model
             return 0;
         }
 
-        $start = CarbonImmutable::createFromFormat('Y-m', $this->start_month);
+        $start = CarbonImmutable::createFromFormat('Y-m-d', $this->start_month.'-01');
         $elapsed = (int) floor($start->diffInMonths(CarbonImmutable::now()->startOfMonth()));
 
         return max(0, $this->months_count - max(0, $elapsed));
