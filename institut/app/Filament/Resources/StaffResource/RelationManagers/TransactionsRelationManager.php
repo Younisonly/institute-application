@@ -21,6 +21,16 @@ class TransactionsRelationManager extends RelationManager
 {
     protected static string $relationship = 'transactions';
 
+    public static function getModelLabel(): string
+    {
+        return __('general.staff_transaction');
+    }
+
+    public static function getPluralModelLabel(): string
+    {
+        return __('general.staff_transactions');
+    }
+
     public static function getTitle(Model $ownerRecord, string $pageClass): string
     {
         return __('general.transactions');
@@ -151,48 +161,72 @@ class TransactionsRelationManager extends RelationManager
 
     private function getSalaryMonthOptions(): array
     {
+        $staffId = $this->getOwnerRecord()->id;
+        $periods = \App\Models\StaffPayrollPeriod::query()
+            ->where('staff_id', $staffId)
+            ->whereIn('status', ['approved', 'partially_paid'])
+            ->orderBy('salary_month', 'desc')
+            ->get();
+
         $options = [];
-        $start = now()->subMonths(6);
-        for ($i = 0; $i <= 12; $i++) {
-            $date = $start->copy()->addMonths($i);
-            $options[$date->format('Y-m')] = $date->format('F Y');
+        foreach ($periods as $period) {
+            $month = $period->salary_month;
+            if (isset($options[$month])) {
+                continue;
+            }
+            $payable = $this->getPayableSalary($month);
+            if ($payable > 0) {
+                $options[$month] = $month . ' (' . __('general.accrued') . ': ' . number_format((float) $period->net_salary) . ' ' . __('general.currency') . ' — ' . __('general.remaining_payable') . ': ' . number_format($payable) . ' ' . __('general.currency') . ')';
+            }
         }
+
         return $options;
     }
 
     private function getPayableSalary(string $salaryMonth): float
     {
         $staff = $this->getOwnerRecord();
-        if ($staff->salary_type !== 'monthly') {
-            return 99999999.99; // No strict cap for non-monthly (or handle separately)
+
+        $totalAccruedNet = (float) \App\Models\StaffPayrollPeriod::query()
+            ->where('staff_id', $staff->id)
+            ->where('salary_month', $salaryMonth)
+            ->whereIn('status', ['approved', 'partially_paid'])
+            ->sum('net_salary');
+
+        if ($totalAccruedNet <= 0) {
+            return 0.0;
         }
 
-        $base = (float) $staff->salary_value;
-        
         $totalPaidThisMonth = (float) $staff->transactions()
             ->whereIn('type', ['salary', 'deduction'])
             ->whereNull('voided_at')
             ->where('salary_month', $salaryMonth)
             ->sum('amount');
 
-        return max(0, $base - $totalPaidThisMonth);
+        return max(0.0, $totalAccruedNet - $totalPaidThisMonth);
     }
 
     private function salaryAndDeductionFields(bool $includeDeductionInput = true): array
     {
+        $options = $this->getSalaryMonthOptions();
+        if (empty($options)) {
+            return [
+                \Filament\Forms\Components\Placeholder::make('no_accrued_salary_notice')
+                    ->hiddenLabel()
+                    ->content(new HtmlString('<div class="p-4 mb-4 text-sm text-amber-800 rounded-lg bg-amber-50 dark:bg-gray-800 dark:text-amber-400" role="alert"><span class="font-medium">' . __('general.no_approved_payrolls_for_staff') . '</span></div>')),
+            ];
+        }
+
         $outstanding = (float) $this->getOwnerRecord()->outstanding_advance;
+        $defaultMonth = array_key_first($options);
 
         $fields = [
             \Filament\Forms\Components\Select::make('salary_month')
                 ->label(__('general.salary_month'))
-                ->options($this->getSalaryMonthOptions())
-                ->default(now()->format('Y-m'))
+                ->options($options)
+                ->default($defaultMonth)
                 ->required()
                 ->live(),
-            \Filament\Forms\Components\Placeholder::make('month_warning')
-                ->hiddenLabel()
-                ->content(fn (\Filament\Forms\Get $get) => new HtmlString('<span style="color: red; font-weight: bold;">' . __('general.month_not_ended_warning') . '</span>'))
-                ->visible(fn (\Filament\Forms\Get $get) => $get('salary_month') === now()->format('Y-m') && now()->day < 28),
             \Filament\Forms\Components\Placeholder::make('base_salary')
                 ->label(__('general.base_salary'))
                 ->content(fn () => number_format((float) $this->getOwnerRecord()->salary_value) . ' ' . __('general.currency')),
@@ -218,8 +252,8 @@ class TransactionsRelationManager extends RelationManager
 
         $fields[] = \Filament\Forms\Components\Placeholder::make('max_payable_placeholder')
             ->label(__('general.max_payable'))
-            ->content(function (\Filament\Forms\Get $get): string {
-                $salaryMonth = $get('salary_month') ?? now()->format('Y-m');
+            ->content(function (\Filament\Forms\Get $get) use ($defaultMonth): string {
+                $salaryMonth = $get('salary_month') ?? $defaultMonth;
                 $basePayable = $this->getPayableSalary($salaryMonth);
                 $deduction = (float) ($get('deduct_advance_amount') ?? 0);
                 $maxCash = max(0, $basePayable - $deduction);
@@ -232,8 +266,8 @@ class TransactionsRelationManager extends RelationManager
             ->required()
             ->minValue(1)
             ->rules([
-                fn (\Filament\Forms\Get $get) => function (string $attribute, $value, \Closure $fail) use ($get) {
-                    $salaryMonth = $get('salary_month') ?? now()->format('Y-m');
+                fn (\Filament\Forms\Get $get) => function (string $attribute, $value, \Closure $fail) use ($get, $defaultMonth) {
+                    $salaryMonth = $get('salary_month') ?? $defaultMonth;
                     $basePayable = $this->getPayableSalary($salaryMonth);
                     $deduction = (float) ($get('deduct_advance_amount') ?? 0);
                     $maxCash = max(0, $basePayable - $deduction);
@@ -273,21 +307,6 @@ class TransactionsRelationManager extends RelationManager
             $salaryAmount = (float) $data['amount'];
 
             if ($salaryAmount > 0) {
-                if (!empty($data['salary_month'])) {
-                    $alreadyPaid = StaffTransaction::query()
-                        ->where('staff_id', $staffId)
-                        ->where('type', 'salary')
-                        ->whereNull('voided_at')
-                        ->where('salary_month', $data['salary_month'])
-                        ->exists();
-
-                    if ($alreadyPaid) {
-                        throw ValidationException::withMessages([
-                            'salary_month' => __('general.already_paid_this_month'),
-                        ]);
-                    }
-                }
-
                 StaffTransaction::create([
                     'staff_id' => $staffId,
                     'type' => 'salary',

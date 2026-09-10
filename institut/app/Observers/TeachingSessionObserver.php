@@ -33,6 +33,7 @@ class TeachingSessionObserver
 
     public function updating(TeachingSession $session): void
     {
+        $user = Auth::user();
         $month = $session->date->format('Y-m');
         $isClosed = \App\Models\StaffPayrollPeriod::query()
             ->where('staff_id', $session->actual_teacher_id)
@@ -40,7 +41,7 @@ class TeachingSessionObserver
             ->whereIn('status', ['approved', 'partially_paid', 'paid'])
             ->exists();
 
-        if ($isClosed) {
+        if ($isClosed && (! $user || ! $user->hasAnyRole(['admin', 'accountant', 'registrar']))) {
             throw new \RuntimeException(__('general.cannot_modify_closed_payroll_session'));
         }
 
@@ -59,6 +60,7 @@ class TeachingSessionObserver
 
     public function deleting(TeachingSession $session): void
     {
+        $user = Auth::user();
         $month = $session->date->format('Y-m');
         $isClosed = \App\Models\StaffPayrollPeriod::query()
             ->where('staff_id', $session->actual_teacher_id)
@@ -66,7 +68,7 @@ class TeachingSessionObserver
             ->whereIn('status', ['approved', 'partially_paid', 'paid'])
             ->exists();
 
-        if ($isClosed) {
+        if ($isClosed && (! $user || ! $user->hasAnyRole(['admin', 'accountant', 'registrar']))) {
             throw new \RuntimeException(__('general.cannot_modify_closed_payroll_session'));
         }
     }

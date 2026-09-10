@@ -67,9 +67,7 @@ class StaffPayrollPeriod extends Model
     public function getTotalPaidAttribute(): float
     {
         return (float) StaffTransaction::query()
-            ->where('staff_id', $this->staff_id)
-            ->where('type', 'salary')
-            ->where('salary_month', $this->salary_month)
+            ->where('payroll_period_id', $this->id)
             ->whereNull('voided_at')
             ->sum('amount');
     }

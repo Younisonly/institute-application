@@ -38,6 +38,11 @@ class Staff extends Model
         ];
     }
 
+    public function user(): \Illuminate\Database\Eloquent\Relations\HasOne
+    {
+        return $this->hasOne(User::class, 'staff_id');
+    }
+
     public function transactions(): HasMany
     {
         return $this->hasMany(StaffTransaction::class);

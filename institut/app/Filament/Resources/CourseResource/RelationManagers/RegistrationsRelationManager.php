@@ -19,6 +19,16 @@ class RegistrationsRelationManager extends RelationManager
 {
     protected static string $relationship = 'registrations';
 
+    public static function getModelLabel(): string
+    {
+        return __('general.registration');
+    }
+
+    public static function getPluralModelLabel(): string
+    {
+        return __('general.registrations');
+    }
+
     public static function getTitle(Model $ownerRecord, string $pageClass): string
     {
         return __('general.students');
@@ -84,7 +94,7 @@ class RegistrationsRelationManager extends RelationManager
                     ->label(__('general.manage_grades'))
                     ->icon('heroicon-o-academic-cap')
                     ->color('success')
-                    ->modalHeading(fn (Registration $record) => __('general.manage_grades') . ' - ' . $record->student->name)
+                    ->modalHeading(fn (?Registration $record) => __('general.manage_grades') . ($record?->student?->name ? ' - ' . $record->student->name : ''))
                     ->form(function () {
                         $course = $this->getOwnerRecord();
                         $schema = $course->grading_schema ?? [];

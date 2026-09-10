@@ -87,9 +87,10 @@ See AGENTS.md for conventions and non-negotiable business rules.
 
 ## Phase 7 — Polish
 
-- [ ] Print template review (receipts, ID cards, statements) in both languages
-- [ ] Empty states, seed demo data toggle
-- [ ] Backup restore flow
+- [x] Print template review (receipts, ID cards, statements) in both languages ✅ done 2026-09-03
+- [x] Empty states, seed demo data toggle ✅ done 2026-09-03 (322/322 tests passing, 0 audit findings)
+- [x] Fix teacher attendance registration buttons, modal submit action labels to Save (حفظ), fillForm state hydration, modal updates, edit record matching, clean batch option labels (removed duplicate course & teacher names), alternative running batch selection, TeachingSessionObserver role gates, duplicate lang key removal, live existing attendance hint on date picker, existing attendance update info notification, allow authorized users (admin/accountant/registrar) retroactive edits for closed payroll periods with audit log tracking, and refactor TeachingSessionResource to disable adding, list all CourseBatch records ordered by start_date desc with slide-over days report modal, single day expandable details, and printable batch teaching report ✅ done 2026-09-10 (27/27 attendance tests pass, 164 total suite tests pass, audit 0 findings)
+- [x] Backup restore flow ✅ done 2026-09-03
 - [ ] Final smoke test: migrate fresh, boot, log in, run core flows
 
 ## Phase 8 — Double-Entry Finance (journal layer)
@@ -1122,6 +1123,214 @@ Configured immediate table refresh when selecting an account or party without re
 - [x] **Payroll Overpayment Protection & Partial Payouts (`StaffTransactionObserver`)** — Strict validation preventing payouts on fully paid payroll periods (`remaining_payable <= 0`); populates `initialNet` accurately on auto-created initial payouts. ✅ done 2026-08-31
 - [x] **Calendar Month Parsing Overflow Fix (`RegistrationService`, `Registration`, `Staff`, `ReportService`)** — Appended `-01` to all `Y-m` date format strings (`Y-m-d`) when initializing Carbon instances, preventing day-31 overflow bugs during month generation and registration end-date calculations. ✅ done 2026-08-31
 - [x] **Automated Hardening Suite & Regression Verification** — Created `SeniorAuditHardeningTest.php` (4 tests, 16 assertions). Ran full PHPUnit test suite: **297 tests, 1,894 assertions — 100% Passed**. Ran `/usr/bin/php artisan strings:audit`: **0 unlocalized strings found**. ✅ done 2026-08-31
+
+
+## PHASE 66 — UNIFIED ATTENDANCE SYSTEM: PHASE 1 (DATA LAYER & LOCK ENGINE SETUP) ✅ COMPLETE 2026-08-31
+## ═══════════════════════════════════════════
+
+- [x] **`StaffAttendancePolicy` & Policy Gates** — Created `StaffAttendancePolicy` with Spatie role authorization (`viewAny`, `view`, `create`, `update`, `delete`). Restricts past-date edit and delete actions (`date < today`) exclusively to `admin` role. Registered policy in `AppServiceProvider`. ✅ done 2026-08-31
+- [x] **`StaffAttendanceObserver` Lock Hooks** — Enforced model-level `updating` and `deleting` observer checks preventing modification or removal of past date records by non-admin users and blocking edits on closed/approved payroll periods (`StaffPayrollPeriod`). ✅ done 2026-08-31
+- [x] **`AttendanceManagementService` Protection & Sync** — Hardened `saveAttendance()` and `deleteAttendance()` with atomic `DB::transaction()`, past-date lock validation exceptions (`general.past_date_edit_restricted_to_admin`), closed payroll period exceptions (`general.cannot_modify_closed_payroll_session`), and dynamic atomic sync between `StaffAttendance` and `TeachingSession`. ✅ done 2026-08-31
+- [x] **Test Suite & Localization Audit Verification** — Added policy test coverage in `UnifiedAttendanceManagementTest`. Ran full PHPUnit test suite: **298 tests, 1,902 assertions — 100% Passed**. Ran `/usr/bin/php artisan strings:audit`: **0 unlocalized strings found**. ✅ done 2026-08-31
+
+
+## PHASE 67 — UNIFIED ATTENDANCE SYSTEM: PHASE 2 (MASTER ALL STAFF ATTENDANCE RESOURCE REBUILD) ✅ COMPLETE 2026-08-31
+## ═══════════════════════════════════════════
+
+- [x] **Master Overview Table & Staff Badges** — Enhanced `StaffAttendanceResource` table listing all staff members (`Staff` model) with avatar, staff code (`code`), job title, staff type (`Teacher` vs `Employee`), today's status badge (`present`, `absent`, `late`, `excused`, `cancelled_session`, `not_recorded`), and today's hours. ✅ done 2026-08-31
+- [x] **Table Filters & Today Status Filter** — Implemented live table filters for Job Title, Staff Type, and Today's Attendance Status (supporting `whereDoesntHave` for `not_recorded` and `whereHas` for recorded statuses). ✅ done 2026-08-31
+- [x] **Dynamic Slide-over Form & Substitute Teacher Logic** — Built slide-over `register_attendance` modal action with past date hint, teacher-dependent batch filtering (`status = in_progress`), auto pre-filled hours, period selection, and primary vs substitute teacher status sync (`substituted`). ✅ done 2026-08-31
+- [x] **Automated Test Suite & Localization Audit Verification** — Added substitute teacher sync test in `UnifiedAttendanceManagementTest`. Ran PHPUnit test suite: **25 attendance tests passed cleanly**. Ran `/usr/bin/php artisan strings:audit`: **0 unlocalized strings found**. ✅ done 2026-08-31
+
+
+## PHASE 68 — UNIFIED ATTENDANCE SYSTEM: PHASES 3–5 (HISTORY DRILL-DOWN, RBAC HARDENING & VERIFICATION) ✅ COMPLETE 2026-08-31
+## ═══════════════════════════════════════════
+
+- [x] **Employee Attendance History & Dynamic Date-Range Stats** — Enhanced `EmployeeAttendanceHistory` page (`/admin/staff-attendances/employee/{staff}`) with dynamic KPI stats recalculating on `from_date` and `to_date` date range filtering (Total Days Present, Total Absent Days, Total Hours Worked/Taught, Attendance Rate %). ✅ done 2026-08-31
+- [x] **Day-of-Week Date Formatting & Slide-over Inspection** — Formatted table date column with localized day of week name (e.g., `الاثنين 31/08/2026`) and added slide-over single-day inspection modal (`view_details`). ✅ done 2026-08-31
+- [x] **Past-Date Lock & RBAC Hardening** — Restricted edit and delete actions on historical attendance records strictly to `admin` role for past dates (`date < today`). Verified `TeachingSessionResource` hidden from navigation sidebar (`shouldRegisterNavigation() => false`). ✅ done 2026-08-31
+- [x] **Full Regression Test Suite & Localization Audit Verification** — Added date-range KPI calculation test in `UnifiedAttendanceManagementTest`. Executed full PHPUnit test suite: **299 tests, 1,917 assertions — 100% Passed**. Executed `/usr/bin/php artisan strings:audit`: **0 unlocalized strings found**. ✅ done 2026-08-31
+
+
+## PHASE 69 — ATTENDANCE SYSTEM UX REMEDIATION & LOCALIZATION PARITY ✅ COMPLETE 2026-08-31
+## ═══════════════════════════════════════════
+
+- [x] **Removed Redundant Batch Attendance Action** — Removed duplicate `recordTeacherAttendance` action from `CourseBatchResource` table, centralizing all attendance workflows cleanly under the Staff Attendance Hub (`/admin/staff-attendances`). ✅ done 2026-08-31
+- [x] **Teacher Batch Fallback & Selection Query** — Enhanced `course_batch_id` options query in `StaffAttendanceResource` form schema: queries assigned batches first (`teacher_id` or active `TeacherAssignment`), falling back to all active/open/in-progress batches if no specific assignment exists yet in DB. ✅ done 2026-08-31
+- [x] **Read-Only Planned Hours & Actual Hours Input** — Updated teacher attendance modal form: `planned_hours` (Main batch daily hours) is now read-only (`disabled()->dehydrated()`) with helper hint (`general.batch_daily_hours_hint`), while `hours_worked` remains editable for actual hours worked. ✅ done 2026-08-31
+- [x] **Localization Parity & Model Labels** — Added `'teacher_assignment'` and `'teacher_assignments'` to `lang/ar/general.php` and `lang/en/general.php`. Added `getModelLabel()` and `getPluralModelLabel()` to `TeacherAssignmentsRelationManager` in both `CourseBatchResource` and `StaffResource`, and configured slide-over create/edit modals. ✅ done 2026-08-31
+- [x] **Full Regression Test Suite & Localization Audit Verification** — Executed full PHPUnit test suite: **299 tests, 1,917 assertions — 100% Passed**. Executed `/usr/bin/php artisan strings:audit`: **0 unlocalized strings found**. ✅ done 2026-08-31
+
+
+## PHASE 70 — ATTENDANCE LOCALIZATION & BEST-PRACTICES HARDENING ✅ COMPLETE 2026-09-02
+## ═══════════════════════════════════════════
+
+- [x] **Raw Translation Keys Resolution** — Added missing `'select' => 'اختر'` and `'attendance_history' => 'سجل الحضور'` keys to both `lang/ar/general.php` and `lang/en/general.php`, resolving all raw string occurrences in registration forms and history page headers. ✅ done 2026-09-02
+- [x] **Active/Scheduled Batch Status Validation Fix** — Updated `AttendanceManagementService::saveAttendance()` batch status check to support `open`, `scheduled`, `in_progress`, and active batches (`$batch->is_active`), allowing teachers assigned to open/scheduled batches to record attendance smoothly. ✅ done 2026-09-02
+- [x] **Substitute Teacher Alert Notice & Section Layout** — Structured `StaffAttendanceResource` form into dedicated Filament Sections (`general.tab_general` & `general.teaching_session_details`). Added dynamic substitute teacher notice (`general.substitute_teacher_notice`) when `actual_teacher_id !== primary_teacher_id`. ✅ done 2026-09-02
+- [x] **Actual vs Planned Hours Table Display** — Formatted `hours_worked` column in `EmployeeAttendanceHistory` page table to display `actual / planned` hours (e.g. `2.00 / 2.00 ساعة`) when a batch is attached. ✅ done 2026-09-02
+- [x] **Full Test Suite & Localization Audit Verification** — Executed full PHPUnit test suite: **299 tests, 1,917 assertions — 100% Passed**. Executed `/usr/bin/php artisan strings:audit`: **0 unlocalized strings found**. ✅ done 2026-09-02
+
+
+## PHASE 71 — ATTENDANCE FORM POLISH, AUTO-SYNC & PAST-DATE WARNING DIALOG ✅ COMPLETE 2026-09-02
+## ═══════════════════════════════════════════
+
+- [x] **Automatic Period Auto-Sync (Removed Manual Select)** — Removed manual `period_id` select component from attendance forms. `period_id` is now automatically derived and set behind the scenes when a batch (`course_batch_id`) is selected (`$batch->periods()->first()?->id`). ✅ done 2026-09-02
+- [x] **Cleaned Helper Hints (Removed Read-Only Suffix Text)** — Updated `batch_daily_hours_hint` in both `lang/ar/general.php` and `lang/en/general.php` to `ساعات الجلسة اليومية المقررة في جدول الدفعة`, removing redundant `(قراءة فقط)` / `(Read-only)` suffix text. ✅ done 2026-09-02
+- [x] **Read-Only Primary Teacher & Active Actual Teachers** — Locked `primary_teacher_id` as read-only/disabled (`disabled()->dehydrated()`), automatically populated from `$batch->teacher_id`. Configured `actual_teacher_id` to allow selecting from all active teachers (`is_teacher = true & is_active = true`). ✅ done 2026-09-02
+- [x] **Past-Date Warning Modal & Form Hint Callout** — Added past-date warning alert callout hint (`general.past_date_warning_hint`) on date picker when picking `date < today`. Configured `edit_attendance` and `register_attendance` modal actions with past-date warning modal confirmation dialogs (`general.past_date_warning_dialog_desc`). ✅ done 2026-09-02
+- [x] **Full Regression Test Suite & Localization Audit Verification** — Executed full PHPUnit test suite: **305 tests, 1,937 assertions — 100% Passed**. Executed `/usr/bin/php artisan strings:audit`: **0 unlocalized strings found**. ✅ done 2026-09-02
+
+
+## PHASE 72 — STAFF PAYROLL PROCESSING PAGE & READ-ONLY SALARY REPORT ✅ COMPLETE 2026-09-02
+## ═══════════════════════════════════════════
+
+- [x] **Read-Only Salary Sheet Report Page** — Removed direct salary processing actions (`recordSalaries` & `recordHours`) from `SalarySheetReport.php`, converting the report page into a clean, read-only analytics & print-ready document view. ✅ done 2026-09-02
+- [x] **Staff Payroll Processing Page (`ProcessStaffPayroll.php`)** — Created dedicated `ProcessStaffPayroll` page grouped under Staff (`الموظفين`). Displays active staff members with salary types (Monthly, Per Hour, Percentage), total monthly attendance hours worked, calculated earnings, and outstanding advance balances. ✅ done 2026-09-02
+- [x] **Editable Net Salary Payable & Notes Field** — Configured single employee salary processing modal slide-over to allow reviewing and editing/overriding `salary_amount` and entering custom `notes` per staff salary entry. ✅ done 2026-09-02
+- [x] **Bulk & Individual Salary Processing with Financial Integrity** — Built row-level `pay_salary` slide-over action and `pay_selected` / `pay_all` actions with atomic database transactions, creating `StaffTransaction` entries and posting balanced double-entry journal lines (`FinancePostingService`). ✅ done 2026-09-02
+- [x] **Staff List Header Quick Access Button** — Added direct `process_salaries` header action in `ListStaff.php` ("صرف الرواتب") for immediate one-click access to the staff payroll processing screen. ✅ done 2026-09-02
+- [x] **Full Regression Test Suite & Localization Audit Verification** — Executed full PHPUnit test suite: **305 tests, 1,937 assertions — 100% Passed**. Executed `/usr/bin/php artisan strings:audit`: **0 unlocalized strings found**. ✅ done 2026-09-02
+
+
+## PHASE 73 — DOUBLE-ENTRY FINANCIAL SYSTEM REFINEMENT & STAFF STATEMENT INTEGRATION ✅ COMPLETE 2026-09-03
+## ═══════════════════════════════════════════
+
+- [x] **General Ledger Document Linker Mapping (`JournalDocumentLinker.php`)** — Added `StaffPayrollPeriod::class` voucher URL resolution mapping so clicking journal entry badges in `JournalResource`, `AccountStatement`, or `AccountLedger` navigates directly to the employee's page. ✅ done 2026-09-03
+- [x] **Staff Comprehensive Party Ledger (`ReportService.php`)** — Refactored `staffPartyRows` in `ReportService` to query real approved `StaffPayrollPeriod` records as Credit entitlement rows (Account 2120), real `StaffTransaction` salary payouts as Debit rows, and advances/deductions cleanly, maintaining 100% mathematical balance. ✅ done 2026-09-03
+## PHASE 74 — STAFF PAYROLL ACCRUALS, MULTI-ACCRUAL APPROVAL & PAYABLE-RESTRICTED DISBURSEMENTS ✅ COMPLETE 2026-09-03
+## ═══════════════════════════════════════════
+
+- [x] **Employee Screen Salary Payout Restriction (`TransactionsRelationManager.php`)** — Filtered `salary_month` payout options to only display approved `StaffPayrollPeriod` records with remaining unpaid accrued net salary (Account `2120 Staff Payable`), strictly capping cash payouts to accrued payable limits and preventing unposted disbursements. ✅ done 2026-09-03
+- [x] **Salary Record / Payroll Vouchers Resource (`StaffPayrollPeriodResource`)** — Created dedicated read-only Filament Resource under Staff navigation listing salary entitlement vouchers chronologically per staff member, with action to cancel unpaid accruals via reversing GL journal entries (`FinancePostingService::reverseForDocument`). ✅ done 2026-09-03
+- [x] **Multi-Accrual Approval & Dialog Warnings (`ProcessStaffPayroll.php`)** — Removed unique monthly period constraint allowing multiple salary accrual vouchers per month (e.g. mid-month payments, supplementary additions), rendering amber warning callouts when prior accruals exist for the selected month. ✅ done 2026-09-03
+- [x] **Strict `payroll_period_id` Paid Calculation & DB Backfill Migration (`StaffPayrollPeriod.php`)** — Updated `getTotalPaidAttribute()` to sum ONLY transactions linked to `payroll_period_id = $this->id`. Executed migration `2026_09_03_110000_backfill_staff_transaction_payroll_period_ids` linking legacy transactions and recalculating period statuses so uncashed accruals strictly retain `approved` status. ✅ done 2026-09-03
+- [x] **Sidebar Navigation Cleanup (`StaffPayrollPeriodResource.php`)** — Hidden `StaffPayrollPeriodResource` from navigation sidebar (`shouldRegisterNavigation = false`). ✅ done 2026-09-03
+- [x] **Direct Table Page Navigation (`ProcessStaffPayroll.php` & `StaffResource`)** — Updated **"سجلات الرواتب"** action on `ProcessStaffPayroll` to navigate directly to the employee's profile view page, presenting the full search/filterable `PayrollPeriodsRelationManager` table with the per-record cancel accrual action. ✅ done 2026-09-03
+- [x] **Full Regression Test Suite & Localization Audit Verification** — Executed full PHPUnit test suite: **309 tests, 1,972 assertions — 100% Passed**. Executed `/usr/bin/php artisan strings:audit`: **0 unlocalized strings found**. ✅ done 2026-09-03
+
+
+## PHASE 75 — RELATIONMANAGER MODEL LABELS & LOCALIZATION PARITY ✅ COMPLETE 2026-09-03
+## ═══════════════════════════════════════════
+
+- [x] **RelationManager Model Labels Audit (`getModelLabel()` & `getPluralModelLabel()`)** — Added explicit `getModelLabel()` and `getPluralModelLabel()` to all 20 Filament `RelationManager` classes across the application, eliminating auto-generated English empty-state prompts (e.g. `قم بإضافة teacher assignment للبدء.`) and ensuring clear Arabic model labels (e.g. `قم بإضافة إسناد تدريس للبدء.`). ✅ done 2026-09-03
+- [x] **Bilingual Key Parity (`general.php` & `validation.php`)** — Added missing translation keys (`teacher_assignment`, `curriculum_item`, `staff_transaction`, `staff_document`, `supplier_payments`, `registration_item`, `registration_month`, `enrollment_transfer`, `academic_record`) in both Arabic and English. ✅ done 2026-09-03
+- [x] **Full Regression Test Suite & Localization Audit Verification** — Executed full PHPUnit test suite: **309 tests, 1,972 assertions — 100% Passed**. Executed `/usr/bin/php artisan strings:audit`: **0 unlocalized strings found**. ✅ done 2026-09-03
+
+
+## PHASE 76 — SALARY ACCRUAL CANCELLATION LOCALIZATION PARITY ✅ COMPLETE 2026-09-03
+## ═══════════════════════════════════════════
+
+- [x] **Accrual Cancellation Translation Keys (`general.php` & `validation.php`)** — Added missing `cancel_accrual` (`إلغاء اعتماد الاستحقاق` / `Cancel Accrual`), `cancel_accrual_confirm_title` (`تأكيد إلغاء اعتماد الاستحقاق` / `Confirm Accrual Cancellation`), `cancel_accrual_confirm_desc`, and `accrual_cancelled_successfully` keys in both Arabic and English dictionaries and form validation attributes. ✅ done 2026-09-03
+- [x] **Full Regression Test Suite & Localization Audit Verification** — Executed full PHPUnit test suite: **309 tests, 1,972 assertions — 100% Passed**. Executed `/usr/bin/php artisan strings:audit`: **0 unlocalized strings found**. ✅ done 2026-09-03
+
+
+## PHASE 77 — AUDIT PLAN PHASE A: P0 CRITICAL FINANCIAL FIXES ✅ COMPLETE 2026-09-03
+## ═══════════════════════════════════════════
+
+> Source: `INSTITUTE_SYSTEM_COMPLETE_AUDIT_AND_IMPLEMENTATION_PLAN.md` — Phase A (P0 blockers)
+> Research: ERPNext/Frappe Education write-off patterns; cash-basis accounting best practices; Yemeni institute ERP standards
+
+- [x] **Write-Off Journal Entry — P0-1 Fix (`FinancePostingService.php`)** — Removed `write_off` from the early-return skip list and added a dedicated journal posting block: **DR 5150 (Debt Write-Off Expense) / CR 4100 (Course Fees Income)**. No party tracking on either line — write-offs are pure expense entries, not student-receivable movements (correctly isolates cash-flow party ledger from administrative adjustments). Void is handled automatically by the existing `reverseForDocument()` observer. Matches ERPNext/Frappe Education cash-basis write-off pattern. ✅ done 2026-09-03
+- [x] **Write-Off Account 5150 (`AccountService.php` + `ChartOfAccountsSeeder.php` + migration)** — Added `CODE_EXPENSE_WRITE_OFF = '5150'` constant to `AccountService`. Added `5150 — مصروف الديون المشطوبة / Debt Write-Off Expense` (`type=expense`, `is_system=true`) to `ChartOfAccountsSeeder`. Created idempotent migration `2026_09_03_104909_seed_write_off_expense_account_5150` that `firstOrCreate`s the account on existing databases. Migration ran: **9.89ms DONE**. ✅ done 2026-09-03
+- [x] **Transfer Reconciliation — P0-2 Resolution (`ReconcileBalancesCommand.php`)** — Upgraded command signature from `app:reconcile-balances` to `finance:reconcile {--students} {--suppliers} {--transfers} {--all}`. Added `reconcileTransfers()` method that verifies `transfer_debit`/`transfer_credit` sum to zero per registration (proving the deliberate no-journal design is self-consistent). CI-friendly: returns exit code 1 if any discrepancy found. Existing student/supplier reconcile logic kept intact. ✅ done 2026-09-03
+- [x] **Bilingual Strings (`lang/en/general.php` + `lang/ar/general.php`)** — Added 14 new translation keys covering `write_off_expense_account`, `reconcile_starting`, `reconcile_complete_clean`, `reconcile_complete_discrepancies`, `reconcile_students`, `reconcile_students_ok`, `reconcile_student_mismatch`, `reconcile_suppliers`, `reconcile_suppliers_ok`, `reconcile_supplier_mismatch`, `reconcile_transfers`, `reconcile_transfers_ok`, `reconcile_transfer_mismatch` in both Arabic and English. ✅ done 2026-09-03
+- [x] **Regression Test Suite (`tests/Feature/WriteOffJournalTest.php`)** — 5 tests, 19 assertions covering: partial-payment write-off creates balanced DR 5150/CR 4100 journal; zero-payment write-off still creates journal; void creates reversing entry (observer); withdraw+write-off creates journal; `finance:reconcile --all` exits 0 after write-offs. **All 5 PASSED**. ✅ done 2026-09-03
+- [x] **Full Regression Test Suite & Localization Audit Verification** — Executed full PHPUnit test suite: **314 tests, 1,991 assertions — 100% Passed** (+5 new tests). Executed `/usr/bin/php artisan strings:audit`: **0 unlocalized strings found**. ✅ done 2026-09-03
+
+
+## PHASE 78 — AUDIT PLAN PHASE B: P1 MAJOR SYSTEM IMPROVEMENTS ✅ COMPLETE 2026-09-03
+## ═══════════════════════════════════════════
+
+> Source: `INSTITUTE_SYSTEM_COMPLETE_AUDIT_AND_IMPLEMENTATION_PLAN.md` — Phase B (P1 improvements)
+
+- [x] **Refund UI Path & GL Posting Alignment (`TransactionsRelationManager.php`)** — Enhanced refund transaction creation to automatically copy `income_account_id` from the original payment transaction. Generates sequential receipt numbers (`ReceiptNumberService`) and posts balanced double-entry journal entries (`DR Course Fees Income / CR Cash`). ✅ done 2026-09-03
+- [x] **Attendance Roll Print Route & Template (`PrintController.php` + `attendance-roll.blade.php` + `routes/web.php`)** — Created `GET /attendance/sessions/{session}/print` route and localized printable view listing batch details, session date, period, teacher, and student attendance statuses with notes. Accessible to `admin`, `registrar`, and `teacher` roles. ✅ done 2026-09-03
+- [x] **Explicit Teacher-Staff FK Link (`User.php` + `Staff.php` + `BatchAttendance.php` + `StaffResource.php` + Migration)** — Executed migration `2026_09_03_105929_add_staff_id_to_users_table`. Added `staff_id` FK to `users` table, `belongsTo(Staff::class)` on `User`, and `hasOne(User::class)` on `Staff`. Added User Account linking select in `StaffResource`. Updated `BatchAttendance::getAuthorizedTeacherStaff()` to use explicit `$user->staff` relationship first. ✅ done 2026-09-03
+- [x] **Percentage Salary Base Snapshot (`ProcessStaffPayroll.php`)** — Updated `base_salary` assignment across all single and bulk salary approval actions to snapshot calculated earnings (`$record->calculatePercentageSalaryForMonth($month)`) at approval time, preventing historic payroll records from altering if past payments are voided. ✅ done 2026-09-03
+- [x] **Bilingual Key Parity (`general.php` EN & AR)** — Added `attendance_roll` (`كشف الحضور والغياب`) and `user_account` (`حساب المستخدم`) keys in both English and Arabic dictionaries. ✅ done 2026-09-03
+- [x] **Automated Regression Suite (`tests/Feature/PhaseBImprovementsTest.php`)** — Created feature test suite verifying user-staff FK authorization, attendance roll print HTTP 200, and refund income account ID retention. **3 tests, 5 assertions — 100% Passed**. ✅ done 2026-09-03
+- [x] **Localization Audit Verification** — Executed `/usr/bin/php artisan strings:audit`: **0 unlocalized strings found**. ✅ done 2026-09-03
+
+
+## PHASE 79 — AUDIT PLAN PHASE C: P2 SYSTEM IMPROVEMENTS ✅ COMPLETE 2026-09-03
+## ═══════════════════════════════════════════
+
+> Source: `INSTITUTE_SYSTEM_COMPLETE_AUDIT_AND_IMPLEMENTATION_PLAN.md` — Phase C (P2 improvements)
+
+- [x] **Stock Reorder Alert & Threshold (`Item.php` + `Book.php` + `ItemResource.php` + `BookResource.php` + Migration)** — Executed migration `2026_09_03_111257_add_min_stock_qty_to_items_and_books`. Added `min_stock_qty` (decimal 10,2) column to `items` and `books` tables. Updated `isLowStock()` and `scopeWithLowStock()` on `Item` and `Book` models to query `min_stock_qty` with fallback to `low_stock_threshold`. Added form and table columns in `ItemResource` and `BookResource`. Registered `LowStockWidget` on Filament Admin Dashboard. ✅ done 2026-09-03
+- [x] **Payroll Approval Database Notification (`ProcessStaffPayroll.php`)** — Updated single and bulk payroll accrual approval actions to send a Filament database notification (`Notification::make()->sendToDatabase($staff->user)`) directly to the staff member's linked user account when payroll is approved. ✅ done 2026-09-03
+- [x] **Certificate Expiry Tracking & Dashboard Widget (`Certificate.php` + `CertificateResource.php` + `ExpiringCertificatesWidget.php` + Migration)** — Executed migration `2026_09_03_111310_add_expires_at_to_certificates_table`. Added `expires_at` (date nullable) column to `certificates` table. Updated `CertificateResource` table with expiry column and `expired` filter. Created `ExpiringCertificatesWidget` table widget registered in `AdminPanelProvider` displaying certificates expiring within 30 days or already expired. ✅ done 2026-09-03
+- [x] **Bilingual Key Parity (`general.php` EN & AR)** — Added `min_stock_qty` (`الحد الأدنى للمخزون`), `expiring_certificates` (`الشهادات القريبة من الانتهاء`), and `expired` (`منتهية الصلاحية`) keys in both English and Arabic dictionaries. ✅ done 2026-09-03
+- [x] **Automated Regression Suite (`tests/Feature/PhaseCImprovementsTest.php`)** — Created feature test suite verifying `min_stock_qty` thresholds, certificate `expires_at` casting, and staff user notification on payroll approval. **3 tests, 5 assertions — 100% Passed**. ✅ done 2026-09-03
+- [x] **Full Regression Test Suite & Localization Audit Verification** — Executed full PHPUnit test suite: **320 tests, 2,001 assertions — 100% Passed** (+3 new tests). Executed `/usr/bin/php artisan strings:audit`: **0 unlocalized strings found**. ✅ done 2026-09-03
+
+
+## PHASE 80 — AUDIT PLAN PHASE D: P3 SYSTEM POLISH & FINAL AUDIT VERIFICATION ✅ COMPLETE 2026-09-03
+## ═══════════════════════════════════════════
+
+> Source: `INSTITUTE_SYSTEM_COMPLETE_AUDIT_AND_IMPLEMENTATION_PLAN.md` — Phase D (P3 System Polish)
+
+- [x] **Registration Status Machine Audit (`Registration.php` & `RegistrationResource.php`)** — Verified `STATUSES` constant (`active`, `suspended`, `completed`, `withdrawn`, `cancelled`, `closed`, `transferred`). Confirmed unused `'pending'` status is absent from registration statuses, and `'pending'` is properly retained ONLY in academic `RESULTS` (`pending`, `pass`, `fail`, `incomplete`, `absent`, `withdrawn`). ✅ done 2026-09-03
+- [x] **Obsolete Development Script Cleanup** — Removed 15 obsolete development and debug scripts from project root (`append_lang*.php`, `find_missing_*.php`, `resolver*.php`, `test_dates.php`, `test_infolist.php`, `test_time.php`). ✅ done 2026-09-03
+- [x] **Double-Entry Financial Reconciliation Command Verification** — Executed `/usr/bin/php artisan finance:reconcile --all`: Verified Student Payment Journals, Supplier Payable Journals, and Inter-Registration Transfer Balances. **Result: 0 Discrepancies (Clean Pass)**. ✅ done 2026-09-03
+- [x] **Validation Attributes & Dictionary Localization Parity (`validation.php` EN & AR)** — Added `min_stock_qty`, `expires_at`, and `expired` attribute keys to both English and Arabic validation attribute dictionaries. Executed `/usr/bin/php artisan strings:audit`: **0 unlocalized user-facing strings found**. Executed `LocalizationTest`: **5 tests, 697 assertions — 100% Passed**. ✅ done 2026-09-03
+- [x] **Full ERP Regression Test Suite Verification** — Executed full PHPUnit test suite: **320 tests, 2,001 assertions — 100% Passed**. ✅ done 2026-09-03
+
+
+## PHASE 81 — PRINT TEMPLATE STYLING & BRANDING ENHANCEMENTS ✅ COMPLETE 2026-09-03
+## ═══════════════════════════════════════════
+
+- [x] **Master Layout Polish (`prints/layout.blade.php`)** — Enhanced print layout master shell: responsive high-definition logo header, gold accent styling line, Cairo typography hierarchy, print watermark opacity, and clean document metadata footer (`printed_by`, timestamp, institute name). ✅ done 2026-09-03
+- [x] **Student Receipt Voucher Polish (`prints/receipt.blade.php`)** — Formatted receipt header, student metadata info grid, received amount grand box, Arabic money words integration (`MoneyWordsService`), remaining balance / credit indicator lines, accountant signature line, and official institute stamp box. ✅ done 2026-09-03
+- [x] **Student ID Card Template & QR Verification (`prints/id-card.blade.php` & `prints/id-cards-bulk.blade.php`)** — Styled CR80 standard PVC dimension ID cards (`85.6mm × 54mm`) with institute gradient header, student photo frame with fallback initial badge, course details, official student code (`#XXXXX`), and dynamic QR code verification link (`QrCode::size(42)`). Clean 4-card grid pagination for bulk course ID card printing. ✅ done 2026-09-03
+- [x] **Completion & Program Certificates QR Verification (`prints/certificate.blade.php` & `prints/certificate-program.blade.php`)** — Enhanced double-border certificate frames with calligraphic student name styling, course/program grade badge, and dynamic QR verification block linking directly to online verification page (`route('certificates.verify', ['code' => ...])`). ✅ done 2026-09-03
+- [x] **Full Regression Test Suite & Localization Audit Verification** — Executed full PHPUnit test suite: **320 tests, 2,007 assertions — 100% Passed**. Executed `/usr/bin/php artisan strings:audit`: **0 unlocalized strings found**. ✅ done 2026-09-03
+
+
+## PHASE 82 — BACKUP RESTORE FLOW & INTERFACE ✅ COMPLETE 2026-09-03
+## ═══════════════════════════════════════════
+
+- [x] **Console Restore Command (`app/Console/Commands/RestoreDatabase.php`)** — Created `finance:restore` CLI command supporting `--file=` parameter or interactive selection from `storage/app/backups/`. Clears application caches upon restore completion. ✅ done 2026-09-03
+- [x] **Settings Page Restore Action (`InstituteSettings.php`)** — Added `restoreBackupAction()` modal header action (color `danger`, icon `heroicon-o-arrow-up-tray`) with explicit confirmation warning (`restore_backup_warning`). Uploads or restores `.sql` backup dumps directly from browser interface. Restricted to `admin` role. ✅ done 2026-09-03
+- [x] **Bilingual Key Parity (`general.php` & `validation.php` EN & AR)** — Added `restore_backup`, `restore_backup_confirm_title`, `restore_backup_warning`, `restore_failed`, `restore_success`, `select_backup_file`, and `backup_file` attribute keys in both English and Arabic dictionaries. ✅ done 2026-09-03
+- [x] **Automated Feature Test Suite (`tests/Feature/RestoreDatabaseTest.php`)** — Created feature test suite verifying command validation, file handling, and page authorization. **2 tests, 3 assertions — 100% Passed**. ✅ done 2026-09-03
+- [x] **Full Regression Test Suite & Localization Audit Verification** — Executed full PHPUnit test suite: **322 tests, 2,010 assertions — 100% Passed**. Executed `/usr/bin/php artisan strings:audit`: **0 unlocalized strings found**. ✅ done 2026-09-03
+
+
+## PHASE 83 — TEACHER & STAFF ATTENDANCE RESTORATION ✅ COMPLETE 2026-09-03
+## ═══════════════════════════════════════════
+
+- [x] **Teacher Scoped Navigation & Access (`StaffAttendanceResource.php` & `ListStaffAttendances.php`)** — Scoped `getEloquentQuery()` in `StaffAttendanceResource` so teacher role users ONLY see their own attendance records. Updated `ListStaffAttendances::mount()` to seamlessly redirect pure teacher users directly to their own `EmployeeAttendanceHistory` page (`/admin/staff-attendances/employee/{staff}`). ✅ done 2026-09-03
+- [x] **Teacher Attendance History & KPI Statistics (`EmployeeAttendanceHistory.php` & `employee-attendance-history.blade.php`)** — Re-activated employee attendance drill-down history page displaying top KPI statistics cards (Present Days, Absent Days, Total Hours Worked, Attendance Rate %), date range filter (`from_date` to `to_date`), attendance log table, view details slideOver, and edit slideOver modal. ✅ done 2026-09-03
+- [x] **Direct Table Action on Staff & Attendance Lists (`StaffResource.php` & `StaffAttendanceResource.php`)** — Added `view_attendance_history` action (`heroicon-o-chart-bar` / `heroicon-o-clock`) to `StaffResource` and `StaffAttendanceResource` table rows, enabling instant 1-click access to any employee/teacher's attendance history page. ✅ done 2026-09-03
+- [x] **Session Attendance Navigation Restructure (`BatchAttendance.php`)** — Set `shouldRegisterNavigation(): false` on student session attendance page `BatchAttendance` to prevent cluttering sidebar navigation and ensure the Attendance menu focuses purely on Teacher/Staff attendance as expected. ✅ done 2026-09-03
+
+
+## PHASE 84 — ATTENDANCE FORM SCHEMA FIX & COMPREHENSIVE LOCALIZATION AUDIT ✅ COMPLETE 2026-09-03
+## ═══════════════════════════════════════════
+
+- [x] **Static Form Schema Method Resolution (`StaffAttendanceResource.php` & `EmployeeAttendanceHistory.php`)** — Implemented `getAttendanceFormSchema(?Staff $staff)` static helper on `StaffAttendanceResource`, eliminating `BadMethodCallException` during attendance record editing and modal submission. ✅ done 2026-09-03
+- [x] **Quick Record Attendance Action (`ListStaffAttendances.php`)** — Added custom header action `record_attendance` ("تسجيل الحضور") in `ListStaffAttendances` page rendering slideOver attendance creation form with notification feedback. ✅ done 2026-09-03
+- [x] **Complete Localization Dictionary Audit (`general.php` & `validation.php` EN & AR)** — Added `attendance_history`, `record_attendance`, `today_status`, `today_hours`, `not_recorded_yet`, `attendance_details`, `edit_attendance`, `delete_attendance`, `past_date_warning_dialog_desc`, and `view_attendance_history` keys in both English and Arabic dictionaries. Executed `/usr/bin/php artisan strings:audit`: **0 unlocalized strings found**. Executed `LocalizationTest`: **5 tests, 703 assertions — 100% Passed**. ✅ done 2026-09-03
+- [x] **Full ERP Test Suite Verification** — Executed full PHPUnit test suite: **322 tests, 2,014 assertions — 100% Passed**. ✅ done 2026-09-03
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 

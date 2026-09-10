@@ -114,6 +114,7 @@ class AdminPanelProvider extends PanelProvider
                 BatchesEndingSoonWidget::class,
                 PendingResultsWidget::class,
                 LowStockWidget::class,
+                \App\Filament\Widgets\ExpiringCertificatesWidget::class,
                 RecentActivityWidget::class,
             ])
             ->databaseNotifications()

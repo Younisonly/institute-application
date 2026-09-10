@@ -24,6 +24,16 @@ class MovementsRelationManager extends RelationManager
 {
     protected static string $relationship = 'movements';
 
+    public static function getModelLabel(): string
+    {
+        return __('general.stock_movement');
+    }
+
+    public static function getPluralModelLabel(): string
+    {
+        return __('general.stock_movements');
+    }
+
     public static function getTitle(Model $ownerRecord, string $pageClass): string
     {
         return __('general.stock_movements');

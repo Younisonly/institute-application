@@ -72,6 +72,12 @@ class CertificateResource extends Resource
                 TextColumn::make('issue_date')
                     ->label(__('general.issue_date'))
                     ->date('d/m/Y'),
+                TextColumn::make('expires_at')
+                    ->label(__('general.expires_at'))
+                    ->date('d/m/Y')
+                    ->placeholder('—')
+                    ->badge()
+                    ->color(fn (?Certificate $record): string => $record?->expires_at && $record->expires_at->isPast() ? 'danger' : 'gray'),
                 TextColumn::make('status')
                     ->label(__('general.status'))
                     ->badge()
@@ -93,6 +99,9 @@ class CertificateResource extends Resource
                         'issued' => __('general.certificate_status_issued'),
                         'voided' => __('general.certificate_status_voided'),
                     ]),
+                Tables\Filters\Filter::make('expired')
+                    ->label(__('general.expired'))
+                    ->query(fn (\Illuminate\Database\Eloquent\Builder $query) => $query->whereNotNull('expires_at')->where('expires_at', '<', now())),
             ])
             ->actions([
                 Tables\Actions\ViewAction::make(),

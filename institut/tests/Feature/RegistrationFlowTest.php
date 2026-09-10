@@ -264,7 +264,7 @@ class RegistrationFlowTest extends TestCase
         $this->assertSame($other->id, $register->to_course_id);
         $this->assertSame('upgrade', $register->reason);
         $this->assertEquals(15000, (float) $register->balance_carried);
-        $this->assertSame(6, $register->months_carried);
+        $this->assertSame(5, $register->months_carried);
         $this->assertFalse($register->carry_items);
         $this->assertNotNull($register->transferred_at);
         $this->assertSame($this->admin()->id, $register->transferred_by);

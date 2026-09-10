@@ -15,6 +15,16 @@ class MonthsRelationManager extends RelationManager
 {
     protected static string $relationship = 'months';
 
+    public static function getModelLabel(): string
+    {
+        return __('general.registration_month');
+    }
+
+    public static function getPluralModelLabel(): string
+    {
+        return __('general.registration_months');
+    }
+
     public static function getTitle(Model $ownerRecord, string $pageClass): string
     {
         return __('general.registration_months');

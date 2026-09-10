@@ -24,6 +24,16 @@ class TransactionsRelationManager extends RelationManager
 {
     protected static string $relationship = 'transactions';
 
+    public static function getModelLabel(): string
+    {
+        return __('general.transaction');
+    }
+
+    public static function getPluralModelLabel(): string
+    {
+        return __('general.transactions');
+    }
+
     public static function getTitle(Model $ownerRecord, string $pageClass): string
     {
         return __('general.transactions');
@@ -205,10 +215,15 @@ class TransactionsRelationManager extends RelationManager
     private function createTransaction(string $type, array $data, bool $withReceipt = false): void
     {
         DB::transaction(function () use ($type, $data, $withReceipt): void {
+            $originalTx = $type === 'refund' && ! empty($data['original_transaction_id'])
+                ? StudentTransaction::find($data['original_transaction_id'])
+                : null;
+
             $payload = [
                 'student_id' => $this->getOwnerRecord()->student_id,
                 'registration_id' => $this->getOwnerRecord()->id,
                 'original_transaction_id' => $type === 'refund' ? ($data['original_transaction_id'] ?? null) : null,
+                'income_account_id' => $originalTx?->income_account_id,
                 'type' => $type,
                 'amount' => $data['amount'],
                 'date' => $data['date'],

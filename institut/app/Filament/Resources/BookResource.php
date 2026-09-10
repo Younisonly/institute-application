@@ -106,6 +106,7 @@ class BookResource extends Resource
                     ->dehydrated()
                     ->helperText(__('general.stock_movements')),
                 TextInput::make('low_stock_threshold')->label(__('general.low_stock_threshold'))->numeric()->maxValue(999999999999)->minValue(0)->default(5),
+                TextInput::make('min_stock_qty')->label(__('general.min_stock_qty'))->numeric()->maxValue(999999999999)->minValue(0)->nullable(),
                 Toggle::make('is_active')->label(__('general.active'))->default(true),
                 Textarea::make('details')->label(__('general.details'))->rows(3),
             ]);
@@ -124,6 +125,7 @@ class BookResource extends Resource
                     ->badge()
                     ->color(fn (Book $record): string => $record->isLowStock() ? 'danger' : 'success')
                     ->formatStateUsing(fn (int $state, Book $record): string => $record->isLowStock() ? $state.' • '.__('general.low_stock') : (string) $state),
+                TextColumn::make('min_stock_qty')->label(__('general.min_stock_qty'))->placeholder('—')->toggleable(),
                 TextColumn::make('sale_price')
                     ->label(__('general.sale_price'))
                     ->formatStateUsing(fn (?string $state): string => $state !== null ? number_format((float) $state).' '.__('general.currency') : '—'),

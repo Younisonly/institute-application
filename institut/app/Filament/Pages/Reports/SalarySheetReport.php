@@ -6,6 +6,7 @@ use App\Filament\Concerns\HasRbac;
 use App\Filament\Forms\Components\MonthPicker;
 use App\Filament\Forms\Components\PaymentDetails;
 use App\Models\Staff;
+use App\Models\StaffPayrollPeriod;
 use App\Models\StaffTransaction;
 use App\Services\ReportService;
 use Carbon\CarbonImmutable;
@@ -120,11 +121,38 @@ class SalarySheetReport extends Page implements HasForms, HasTable
             }
 
             $date = CarbonImmutable::createFromFormat('Y-m', $month)->endOfMonth()->toDateString();
+            $amount = round((float) $data['hours'] * (float) $staff->salary_value, 2);
+
+            $approvedPeriod = StaffPayrollPeriod::query()
+                ->where('staff_id', $staff->id)
+                ->where('salary_month', $month)
+                ->whereIn('status', ['approved', 'partially_paid'])
+                ->first();
+
+            if (!$approvedPeriod) {
+                $startDate = CarbonImmutable::createFromFormat('Y-m', $month)->startOfMonth()->toDateString();
+                $endDate = CarbonImmutable::createFromFormat('Y-m', $month)->endOfMonth()->toDateString();
+
+                $approvedPeriod = StaffPayrollPeriod::create([
+                    'staff_id' => $staff->id,
+                    'salary_month' => $month,
+                    'start_date' => $startDate,
+                    'end_date' => $endDate,
+                    'base_salary' => $amount,
+                    'gross_salary' => $amount,
+                    'net_salary' => $amount,
+                    'status' => 'approved',
+                    'approved_at' => now(),
+                    'approved_by' => auth()->id(),
+                ]);
+
+                app(\App\Services\FinancePostingService::class)->postPayrollApproval($approvedPeriod);
+            }
 
             StaffTransaction::create([
                 'staff_id' => $staff->id,
                 'type' => 'salary',
-                'amount' => round((float) $data['hours'] * (float) $staff->salary_value, 2),
+                'amount' => $amount,
                 'date' => $date,
                 'method' => $data['method'] ?? 'cash',
                 'bank_id' => $data['bank_id'] ?? null,
@@ -294,6 +322,32 @@ class SalarySheetReport extends Page implements HasForms, HasTable
 
                             if ($alreadyPaid) {
                                 continue;
+                            }
+
+                            $approvedPeriod = StaffPayrollPeriod::query()
+                                ->where('staff_id', $staffId)
+                                ->where('salary_month', $month)
+                                ->whereIn('status', ['approved', 'partially_paid'])
+                                ->first();
+
+                            if (!$approvedPeriod) {
+                                $startDate = CarbonImmutable::createFromFormat('Y-m', $month)->startOfMonth()->toDateString();
+                                $endDate = CarbonImmutable::createFromFormat('Y-m', $month)->endOfMonth()->toDateString();
+
+                                $approvedPeriod = StaffPayrollPeriod::create([
+                                    'staff_id' => $staffId,
+                                    'salary_month' => $month,
+                                    'start_date' => $startDate,
+                                    'end_date' => $endDate,
+                                    'base_salary' => $row['salary'],
+                                    'gross_salary' => $row['amount'],
+                                    'net_salary' => $row['amount'],
+                                    'status' => 'approved',
+                                    'approved_at' => now(),
+                                    'approved_by' => auth()->id(),
+                                ]);
+
+                                app(\App\Services\FinancePostingService::class)->postPayrollApproval($approvedPeriod);
                             }
 
                             StaffTransaction::create([

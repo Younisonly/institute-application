@@ -488,4 +488,26 @@ class PrintController extends Controller
             'autoPrint' => true,
         ]);
     }
+
+    public function attendanceRoll(\App\Models\AttendanceSession $session)
+    {
+        return view('prints.attendance-roll', [
+            'session' => $session->load(['batch.course', 'period', 'records.registration.student', 'creator']),
+            'autoPrint' => true,
+        ]);
+    }
+
+    public function teachingSessionsBatch(CourseBatch $batch)
+    {
+        $sessions = $batch->teachingSessions()
+            ->with(['primaryTeacher', 'actualTeacher', 'createdBy'])
+            ->orderBy('date', 'desc')
+            ->get();
+
+        return view('prints.teaching-sessions-batch', [
+            'batch' => $batch->load(['course', 'teacher']),
+            'sessions' => $sessions,
+            'autoPrint' => true,
+        ]);
+    }
 }

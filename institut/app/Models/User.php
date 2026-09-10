@@ -16,9 +16,14 @@ class User extends Authenticatable implements FilamentUser
     /** @use HasFactory<UserFactory> */
     use HasFactory, HasRoles, Notifiable;
 
-    protected $fillable = ['name', 'email', 'password', 'default_cashbox_id'];
+    protected $fillable = ['name', 'email', 'password', 'default_cashbox_id', 'staff_id'];
 
     protected $hidden = ['password', 'remember_token'];
+
+    public function staff(): \Illuminate\Database\Eloquent\Relations\BelongsTo
+    {
+        return $this->belongsTo(Staff::class, 'staff_id');
+    }
 
     public function defaultCashbox(): \Illuminate\Database\Eloquent\Relations\BelongsTo
     {

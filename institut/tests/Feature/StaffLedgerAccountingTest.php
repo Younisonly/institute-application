@@ -49,6 +49,19 @@ class StaffLedgerAccountingTest extends TestCase
         ]);
 
         // 2. Pay salary (60,000 YER cash) + Advance Deduction (10,000 YER)
+        \App\Models\StaffPayrollPeriod::create([
+            'staff_id' => $staff->id,
+            'salary_month' => '2026-08',
+            'start_date' => '2026-08-01',
+            'end_date' => '2026-08-31',
+            'base_salary' => 70000,
+            'gross_salary' => 70000,
+            'net_salary' => 70000,
+            'status' => 'approved',
+            'approved_at' => now(),
+            'approved_by' => $this->adminUser()->id,
+        ]);
+
         StaffTransaction::create([
             'staff_id' => $staff->id,
             'type' => 'salary',

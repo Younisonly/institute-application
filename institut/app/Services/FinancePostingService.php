@@ -50,8 +50,10 @@ class FinancePostingService
 
     public function postStudentTransaction(StudentTransaction $transaction): void
     {
-        if (in_array($transaction->type, ['charge', 'transfer_debit', 'transfer_credit', 'write_off'])) {
-            return; // billing rows only (cash basis)
+        // Charge rows are purely operational billing (cash-basis — never journaled).
+        // Transfer debit/credit are internal reclassification entries (no cash movement — deliberate design).
+        if (in_array($transaction->type, ['charge', 'transfer_debit', 'transfer_credit'])) {
+            return;
         }
 
         $place = $this->placeAccount($transaction->method, $transaction->bank_id, $transaction->wallet_id, $transaction->cashbox_id);
@@ -78,6 +80,24 @@ class FinancePostingService
                 date: $transaction->date->toDateString(),
                 description: __('general.refund').' — '.$transaction->student?->name.' ['.$place->name.']',
                 reference: $transaction->receipt_no ? '#'.$transaction->receipt_no : null,
+                documentType: StudentTransaction::class,
+                documentId: $transaction->id,
+            );
+        } elseif ($transaction->type === 'write_off') {
+            // Write-off: post an audit-trail journal that records the waived portion.
+            // DR 5150 (Debt Write-Off Expense) / CR 4100 (Course Fees Income).
+            // This makes write-offs fully visible on the income statement and trial balance,
+            // matching ERPNext/Frappe Education best practice for cash-basis institute ERP.
+            // No party tracking on write-off lines — write-offs are expense entries, not
+            // student-receivable movements. Party ledger shows only actual cash flows.
+            $writeOffExpense = $this->accounts->account(AccountService::CODE_EXPENSE_WRITE_OFF);
+            $this->journal->post(
+                lines: [
+                    ['account_id' => $writeOffExpense->id, 'debit' => $transaction->amount],
+                    ['account_id' => $income->id, 'credit' => $transaction->amount],
+                ],
+                date: $transaction->date->toDateString(),
+                description: __('general.write_off').' — '.$transaction->student?->name,
                 documentType: StudentTransaction::class,
                 documentId: $transaction->id,
             );

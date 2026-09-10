@@ -19,6 +19,16 @@ class EnrollmentTransfersRelationManager extends RelationManager
         return auth()->user()?->hasAnyRole(['admin', 'registrar']) ?? false;
     }
 
+    public static function getModelLabel(): string
+    {
+        return __('general.enrollment_transfer');
+    }
+
+    public static function getPluralModelLabel(): string
+    {
+        return __('general.enrollment_transfers');
+    }
+
     public static function getTitle(Model $ownerRecord, string $pageClass): string
     {
         return __('general.transfers');

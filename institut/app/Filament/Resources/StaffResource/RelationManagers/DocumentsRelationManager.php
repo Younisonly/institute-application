@@ -20,6 +20,16 @@ class DocumentsRelationManager extends RelationManager
 {
     protected static string $relationship = 'documents';
 
+    public static function getModelLabel(): string
+    {
+        return __('general.staff_document');
+    }
+
+    public static function getPluralModelLabel(): string
+    {
+        return __('general.documents');
+    }
+
     public static function getTitle(Model $ownerRecord, string $pageClass): string
     {
         return __('general.documents');

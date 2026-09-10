@@ -203,6 +203,19 @@ class StudentsStaffTest extends TestCase
 
         StaffTransaction::create(['staff_id' => $staff->id, 'type' => 'advance', 'amount' => 10000, 'date' => now()]);
 
+        \App\Models\StaffPayrollPeriod::create([
+            'staff_id' => $staff->id,
+            'salary_month' => now()->format('Y-m'),
+            'start_date' => now()->startOfMonth()->toDateString(),
+            'end_date' => now()->endOfMonth()->toDateString(),
+            'base_salary' => 80000,
+            'gross_salary' => 80000,
+            'net_salary' => 80000,
+            'status' => 'approved',
+            'approved_at' => now(),
+            'approved_by' => User::factory()->create()->id,
+        ]);
+
         StaffTransaction::create([
             'staff_id' => $staff->id,
             'type' => 'salary',

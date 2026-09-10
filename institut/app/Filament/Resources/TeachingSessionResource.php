@@ -4,24 +4,19 @@ namespace App\Filament\Resources;
 
 use App\Filament\Concerns\HasRbac;
 use App\Filament\Resources\TeachingSessionResource\Pages;
-use App\Models\AttendanceSession;
+use App\Models\Course;
 use App\Models\CourseBatch;
-use App\Models\Period;
 use App\Models\Staff;
-use App\Models\TeacherAssignment;
-use App\Models\TeachingSession;
-use Filament\Forms\Components\DatePicker;
-use Filament\Forms\Components\Section;
-use Filament\Forms\Components\Select;
-use Filament\Forms\Components\Textarea;
-use Filament\Forms\Components\TextInput;
 use Filament\Forms\Form;
-use Filament\Forms\Get;
-use Filament\Forms\Set;
+use Filament\Infolists\Components\Section as InfoSection;
+use Filament\Infolists\Components\ViewEntry;
 use Filament\Resources\Resource;
+use Filament\Support\Enums\MaxWidth;
 use Filament\Tables;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
+use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Model;
 
 class TeachingSessionResource extends Resource
 {
@@ -29,25 +24,40 @@ class TeachingSessionResource extends Resource
 
     protected static function accessRoles(): array
     {
-        return ['admin', 'accountant', 'teacher'];
+        return ['admin', 'accountant', 'registrar', 'teacher'];
     }
 
     protected static function createRoles(): array
     {
-        return ['admin', 'accountant', 'teacher'];
+        return [];
     }
 
     protected static function editRoles(): array
     {
-        return ['admin', 'accountant'];
+        return [];
     }
 
     protected static function deleteRoles(): array
     {
-        return ['admin'];
+        return [];
     }
 
-    protected static ?string $model = TeachingSession::class;
+    public static function canCreate(): bool
+    {
+        return false;
+    }
+
+    public static function canEdit(Model $record): bool
+    {
+        return false;
+    }
+
+    public static function canDelete(Model $record): bool
+    {
+        return false;
+    }
+
+    protected static ?string $model = CourseBatch::class;
 
     protected static ?string $navigationIcon = 'heroicon-o-academic-cap';
 
@@ -75,185 +85,106 @@ class TeachingSessionResource extends Resource
 
     public static function form(Form $form): Form
     {
-        return $form
-            ->schema([
-                Section::make()
-                    ->columns(2)
-                    ->schema([
-                        Select::make('course_batch_id')
-                            ->label(__('general.course_batch'))
-                            ->options(CourseBatch::query()->pluck('name', 'id'))
-                            ->searchable()
-                            ->required()
-                            ->live()
-                            ->afterStateUpdated(function ($state, Set $set): void {
-                                if ($state) {
-                                    $batch = CourseBatch::find($state);
-                                    if ($batch) {
-                                        $primaryTeacherId = $batch->teacher_id;
-                                        if (! $primaryTeacherId) {
-                                            $activeAssignment = TeacherAssignment::query()
-                                                ->where('course_batch_id', $batch->id)
-                                                ->where('is_active', true)
-                                                ->first();
-                                            $primaryTeacherId = $activeAssignment?->staff_id;
-                                        }
-
-                                        if ($primaryTeacherId) {
-                                            $set('primary_teacher_id', $primaryTeacherId);
-                                            $set('actual_teacher_id', $primaryTeacherId);
-                                        }
-
-                                        if ($batch->daily_hours > 0) {
-                                            $set('planned_hours', $batch->daily_hours);
-                                            $set('actual_hours', $batch->daily_hours);
-                                        }
-                                    }
-                                }
-                            }),
-                        Select::make('period_id')
-                            ->label(__('general.period'))
-                            ->options(fn (): array => Period::query()->get()->mapWithKeys(fn (Period $period): array => [
-                                $period->id => $period->option_label,
-                            ])->all())
-                            ->searchable()
-                            ->nullable(),
-                        DatePicker::make('date')
-                            ->label(__('general.date'))
-                            ->default(now())
-                            ->required(),
-                        Select::make('primary_teacher_id')
-                            ->label(__('general.primary_teacher'))
-                            ->options(Staff::query()->where('is_teacher', true)->pluck('name', 'id'))
-                            ->searchable()
-                            ->required()
-                            ->live()
-                            ->afterStateUpdated(function ($state, Set $set, Get $get): void {
-                                if (! $get('actual_teacher_id')) {
-                                    $set('actual_teacher_id', $state);
-                                }
-                            }),
-                        Select::make('actual_teacher_id')
-                            ->label(__('general.actual_teacher'))
-                            ->options(Staff::query()->where('is_teacher', true)->pluck('name', 'id'))
-                            ->searchable()
-                            ->required()
-                            ->live()
-                            ->afterStateUpdated(function ($state, Set $set, Get $get): void {
-                                $primaryId = $get('primary_teacher_id');
-                                if ($primaryId && (int) $state !== (int) $primaryId) {
-                                    $set('status', 'substituted');
-                                }
-                            }),
-                        Select::make('status')
-                            ->label(__('general.status'))
-                            ->options([
-                                'completed' => __('general.status_completed'),
-                                'substituted' => __('general.status_substituted'),
-                                'cancelled' => __('general.status_cancelled'),
-                                'postponed' => __('general.status_postponed'),
-                            ])
-                            ->default('completed')
-                            ->required()
-                            ->live()
-                            ->afterStateUpdated(function ($state, Set $set, Get $get): void {
-                                if ($state === 'cancelled') {
-                                    $set('actual_hours', 0);
-                                } elseif (in_array($state, ['completed', 'substituted'], true) && (float) $get('actual_hours') === 0.0) {
-                                    $planned = (float) $get('planned_hours');
-                                    $set('actual_hours', $planned > 0 ? $planned : 2.0);
-                                }
-                            }),
-                        TextInput::make('planned_hours')
-                            ->label(__('general.planned_hours'))
-                            ->numeric()
-                            ->default(2.00)
-                            ->required(),
-                        TextInput::make('actual_hours')
-                            ->label(__('general.actual_hours'))
-                            ->numeric()
-                            ->default(2.00)
-                            ->required(),
-                        TextInput::make('cancellation_reason')
-                            ->label(__('general.cancellation_reason'))
-                            ->visible(fn (Get $get): bool => $get('status') === 'cancelled')
-                            ->columnSpanFull(),
-                        Textarea::make('notes')
-                            ->label(__('general.notes'))
-                            ->columnSpanFull(),
-                    ]),
-            ]);
+        return $form->schema([]);
     }
 
     public static function table(Table $table): Table
     {
         return $table
-            ->defaultSort('date', 'desc')
+            ->defaultSort('start_date', 'desc')
             ->columns([
-                TextColumn::make('date')
-                    ->label(__('general.date'))
-                    ->date('d/m/Y')
-                    ->sortable(),
-                TextColumn::make('courseBatch.name')
+                TextColumn::make('name')
                     ->label(__('general.course_batch'))
                     ->searchable()
-                    ->weight('semibold'),
-                TextColumn::make('primaryTeacher.name')
-                    ->label(__('general.primary_teacher'))
-                    ->searchable(),
-                TextColumn::make('actualTeacher.name')
-                    ->label(__('general.actual_teacher'))
-                    ->searchable()
+                    ->sortable()
                     ->weight('bold'),
+                TextColumn::make('course.name')
+                    ->label(__('general.course'))
+                    ->searchable()
+                    ->sortable(),
+                TextColumn::make('teacher.name')
+                    ->label(__('general.primary_teacher'))
+                    ->searchable()
+                    ->placeholder('—'),
+                TextColumn::make('start_date')
+                    ->label(__('general.start_date'))
+                    ->date('d/m/Y')
+                    ->sortable(),
+                TextColumn::make('end_date')
+                    ->label(__('general.end_date'))
+                    ->date('d/m/Y')
+                    ->sortable()
+                    ->placeholder('—'),
                 TextColumn::make('status')
                     ->label(__('general.status'))
                     ->badge()
-                    ->formatStateUsing(fn (string $state): string => __("general.status_{$state}"))
+                    ->formatStateUsing(fn (string $state): string => __("general.batch_status_{$state}"))
                     ->color(fn (string $state): string => match ($state) {
-                        'completed' => 'success',
-                        'substituted' => 'info',
+                        'in_progress', 'active' => 'success',
+                        'completed' => 'info',
+                        'scheduled', 'open' => 'warning',
                         'cancelled' => 'danger',
-                        'postponed' => 'warning',
                         default => 'gray',
                     }),
-                TextColumn::make('actual_hours')
-                    ->label(__('general.actual_hours'))
-                    ->numeric(2)
-                    ->sortable(),
+                TextColumn::make('teaching_sessions_count')
+                    ->label(__('general.number_of_sessions'))
+                    ->counts('teachingSessions')
+                    ->sortable()
+                    ->badge()
+                    ->color('info'),
+                TextColumn::make('total_actual_hours')
+                    ->label(__('general.total_taught_hours'))
+                    ->state(fn (CourseBatch $record): string => number_format((float) $record->teachingSessions()->sum('actual_hours'), 1).' '.__('general.hours_short'))
+                    ->sortable(query: fn (Builder $query, string $direction) => $query->withSum('teachingSessions as total_hours', 'actual_hours')->orderBy('total_hours', $direction)),
             ])
             ->filters([
-                Tables\Filters\SelectFilter::make('course_batch_id')
-                    ->label(__('general.course_batch'))
-                    ->options(CourseBatch::query()->pluck('name', 'id')),
-                Tables\Filters\SelectFilter::make('actual_teacher_id')
-                    ->label(__('general.actual_teacher'))
+                Tables\Filters\SelectFilter::make('course_id')
+                    ->label(__('general.course'))
+                    ->options(Course::query()->pluck('name', 'id')),
+                Tables\Filters\SelectFilter::make('teacher_id')
+                    ->label(__('general.primary_teacher'))
                     ->options(Staff::query()->where('is_teacher', true)->pluck('name', 'id')),
                 Tables\Filters\SelectFilter::make('status')
                     ->label(__('general.status'))
                     ->options([
-                        'completed' => __('general.status_completed'),
-                        'substituted' => __('general.status_substituted'),
-                        'cancelled' => __('general.status_cancelled'),
-                        'postponed' => __('general.status_postponed'),
+                        'draft' => __('general.batch_status_draft'),
+                        'open' => __('general.batch_status_open'),
+                        'in_progress' => __('general.batch_status_in_progress'),
+                        'completed' => __('general.batch_status_completed'),
+                        'cancelled' => __('general.batch_status_cancelled'),
                     ]),
             ])
             ->actions([
-                Tables\Actions\EditAction::make(),
-                Tables\Actions\DeleteAction::make(),
+                Tables\Actions\Action::make('view_sessions')
+                    ->label(__('general.sessions_detail'))
+                    ->icon('heroicon-o-eye')
+                    ->color('info')
+                    ->slideOver()
+                    ->modalWidth(MaxWidth::SevenExtraLarge)
+                    ->modalHeading(fn (CourseBatch $record): string => __('general.sessions_report').' - '.$record->name)
+                    ->modalSubmitAction(false)
+                    ->modalCancelActionLabel(__('general.close'))
+                    ->infolist([
+                        InfoSection::make()
+                            ->schema([
+                                ViewEntry::make('sessions_modal')
+                                    ->view('filament.resources.teaching-sessions.batch-sessions-modal'),
+                            ]),
+                    ]),
+                Tables\Actions\Action::make('print_report')
+                    ->label(__('general.print_report'))
+                    ->icon('heroicon-o-printer')
+                    ->color('gray')
+                    ->url(fn (CourseBatch $record): string => route('reports.teaching-sessions.batch.print', ['batch' => $record]))
+                    ->openUrlInNewTab(),
             ])
-            ->bulkActions([
-                Tables\Actions\BulkActionGroup::make([
-                    Tables\Actions\DeleteBulkAction::make(),
-                ]),
-            ]);
+            ->bulkActions([]);
     }
 
     public static function getPages(): array
     {
         return [
             'index' => Pages\ListTeachingSessions::route('/'),
-            'create' => Pages\CreateTeachingSession::route('/create'),
-            'edit' => Pages\EditTeachingSession::route('/{record}/edit'),
         ];
     }
 }

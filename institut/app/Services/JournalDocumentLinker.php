@@ -39,8 +39,14 @@ class JournalDocumentLinker
             SupplierTransaction::class => SupplierResource::getUrl('view', ['record' => $this->supplierFor($documentId)]),
             OtherPeopleTransaction::class => OtherPersonResource::getUrl('view', ['record' => $this->personFor($documentId)]),
             Transfer::class => TransferResource::getUrl('view', ['record' => $documentId]),
+            \App\Models\StaffPayrollPeriod::class => $this->staffPayrollPeriodUrl($documentId),
             default => null,
         };
+    }
+
+    private function staffPayrollPeriodUrl(int $id): ?string
+    {
+        return \App\Filament\Resources\StaffPayrollPeriodResource::getUrl('view', ['record' => $id]);
     }
 
     private function studentTransactionUrl(int $id): ?string

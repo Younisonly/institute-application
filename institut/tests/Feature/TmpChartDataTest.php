@@ -46,7 +46,7 @@ class TmpChartDataTest extends TestCase
         ]);
         $resp2->assertOk();
         $out = $resp2->json();
-        file_put_contents('/tmp/opencode/lazy_http_resp.json', json_encode($out, JSON_PRETTY_PRINT));
+        @file_put_contents(sys_get_temp_dir() . '/lazy_http_resp.json', json_encode($out, JSON_PRETTY_PRINT));
         $this->assertNotNull($out);
 
         $mounted = $out['components'][0]['snapshot'] ?? null;

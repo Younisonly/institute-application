@@ -43,6 +43,8 @@ class AccountService
 
     public const CODE_EXPENSE_SALARIES = '5100';
 
+    public const CODE_EXPENSE_WRITE_OFF = '5150';
+
     public const CODE_EXPENSE_OTHER = '5900';
 
     public function cashAccount(): Account

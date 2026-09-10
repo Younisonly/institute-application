@@ -13,6 +13,16 @@ class CertificatesRelationManager extends RelationManager
 {
     protected static string $relationship = 'certificates';
 
+    public static function getModelLabel(): string
+    {
+        return __('general.certificate');
+    }
+
+    public static function getPluralModelLabel(): string
+    {
+        return __('general.certificates');
+    }
+
     public static function getTitle(Model $ownerRecord, string $pageClass): string
     {
         return __('general.certificates');

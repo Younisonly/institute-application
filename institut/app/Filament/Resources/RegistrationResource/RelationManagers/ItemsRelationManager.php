@@ -16,6 +16,16 @@ class ItemsRelationManager extends RelationManager
 {
     protected static string $relationship = 'items';
 
+    public static function getModelLabel(): string
+    {
+        return __('general.registration_item');
+    }
+
+    public static function getPluralModelLabel(): string
+    {
+        return __('general.registration_items');
+    }
+
     public static function getTitle(Model $ownerRecord, string $pageClass): string
     {
         return __('general.items');

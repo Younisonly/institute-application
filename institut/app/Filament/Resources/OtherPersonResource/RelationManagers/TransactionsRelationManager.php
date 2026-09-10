@@ -24,6 +24,16 @@ class TransactionsRelationManager extends RelationManager
 {
     protected static string $relationship = 'transactions';
 
+    public static function getModelLabel(): string
+    {
+        return __('general.transaction');
+    }
+
+    public static function getPluralModelLabel(): string
+    {
+        return __('general.transactions');
+    }
+
     public static function getTitle(Model $ownerRecord, string $pageClass): string
     {
         return __('general.transactions');

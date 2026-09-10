@@ -103,4 +103,10 @@ Route::middleware(['auth', 'role:admin|accountant|registrar|teacher'])->group(fu
 
     Route::get('/marks/course-batches/{batch}/export', [PrintController::class, 'batchMarksExcel'])
         ->name('marks.batch.export');
+
+    Route::get('/attendance/sessions/{session}/print', [PrintController::class, 'attendanceRoll'])
+        ->name('attendance.roll.print');
+
+    Route::get('/reports/teaching-sessions/batch/{batch}/print', [PrintController::class, 'teachingSessionsBatch'])
+        ->name('reports.teaching-sessions.batch.print');
 });

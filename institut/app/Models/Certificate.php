@@ -18,6 +18,7 @@ class Certificate extends Model
         'title_ar',
         'title_en',
         'issue_date',
+        'expires_at',
         'completion_date',
         'status',
         'voided_at',
@@ -31,6 +32,7 @@ class Certificate extends Model
     {
         return [
             'issue_date' => 'date',
+            'expires_at' => 'date',
             'completion_date' => 'date',
             'voided_at' => 'datetime',
             'earned_courses' => 'array',

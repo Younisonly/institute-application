@@ -16,7 +16,7 @@ class TmpChartDumpTest extends TestCase
         $this->actingAs(User::first());
 
         $response = $this->get('/admin');
-        file_put_contents('/tmp/opencode/dashboard_live.html', $response->getContent());
+        @file_put_contents(sys_get_temp_dir() . '/dashboard_live.html', $response->getContent());
         $this->assertTrue($response->status() === 200);
     }
 }

@@ -16,6 +16,16 @@ class AcademicHistoryRelationManager extends RelationManager
 {
     protected static string $relationship = 'registrations';
 
+    public static function getModelLabel(): string
+    {
+        return __('general.academic_record');
+    }
+
+    public static function getPluralModelLabel(): string
+    {
+        return __('general.academic_history');
+    }
+
     public static function getTitle(Model $ownerRecord, string $pageClass): string
     {
         return __('general.academic_history');

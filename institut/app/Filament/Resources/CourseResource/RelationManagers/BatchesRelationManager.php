@@ -22,6 +22,21 @@ class BatchesRelationManager extends RelationManager
 
     protected static ?string $recordTitleAttribute = 'name';
 
+    public static function getModelLabel(): string
+    {
+        return __('general.course_batch');
+    }
+
+    public static function getPluralModelLabel(): string
+    {
+        return __('general.course_batches');
+    }
+
+    public static function getTitle(Model $ownerRecord, string $pageClass): string
+    {
+        return __('general.course_batches');
+    }
+
     private function syncPeriod(?CourseBatch $record, array $data): void
     {
         if ($record === null) {
@@ -35,11 +50,6 @@ class BatchesRelationManager extends RelationManager
         }
 
         $record->periods()->sync([(int) $periodId]);
-    }
-
-    public static function getTitle(Model $ownerRecord, string $pageClass): string
-    {
-        return __('general.batches');
     }
 
     protected function canDelete(Model $record): bool

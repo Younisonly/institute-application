@@ -29,6 +29,11 @@ class BatchAttendance extends Page implements HasForms, HasTable
         return ['admin', 'registrar', 'teacher'];
     }
 
+    public static function shouldRegisterNavigation(): bool
+    {
+        return false;
+    }
+
     protected static ?string $navigationIcon = 'heroicon-o-calendar-days';
 
     protected static ?int $navigationSort = 9;
@@ -67,6 +72,10 @@ class BatchAttendance extends Page implements HasForms, HasTable
         $isPureTeacher = $user->hasRole('teacher') && ! $user->hasAnyRole(['admin', 'registrar']);
         if (! $isPureTeacher) {
             return null;
+        }
+
+        if ($user->staff_id && $user->staff) {
+            return $user->staff;
         }
 
         return \App\Models\Staff::query()
@@ -125,7 +134,7 @@ class BatchAttendance extends Page implements HasForms, HasTable
                     )
                         ->get()
                         ->mapWithKeys(fn (CourseBatch $batch): array => [
-                            $batch->id => $batch->option_label.' — '.($batch->course?->name ?? ''),
+                            $batch->id => $batch->option_label,
                         ])
                         ->all())
                     ->columnSpanFull(),

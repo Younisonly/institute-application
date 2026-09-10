@@ -33,6 +33,7 @@ class ChartOfAccountsSeeder extends Seeder
             ['code' => '4510', 'ar' => 'خصومات وجزاءات الموظفين', 'en' => 'Staff penalty income', 'type' => 'income', 'system' => true],
             // Expenses
             ['code' => '5100', 'ar' => 'الرواتب', 'en' => 'Salaries', 'type' => 'expense', 'system' => true],
+            ['code' => '5150', 'ar' => 'مصروف الديون المشطوبة', 'en' => 'Debt Write-Off Expense', 'type' => 'expense', 'system' => true],
             ['code' => '5900', 'ar' => 'نفقات أخرى', 'en' => 'Other expenses', 'type' => 'expense', 'system' => true],
         ];
 

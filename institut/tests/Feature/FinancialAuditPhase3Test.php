@@ -8,6 +8,7 @@ use App\Models\Course;
 use App\Models\InstituteSetting;
 use App\Models\Registration;
 use App\Models\Staff;
+use App\Models\StaffPayrollPeriod;
 use App\Models\StaffTransaction;
 use App\Models\StockMovement;
 use App\Models\Student;
@@ -46,6 +47,19 @@ class FinancialAuditPhase3Test extends TestCase
         ]);
 
         $pastMonth = '2026-01';
+
+        StaffPayrollPeriod::create([
+            'staff_id' => $staff->id,
+            'salary_month' => $pastMonth,
+            'start_date' => '2026-01-01',
+            'end_date' => '2026-01-31',
+            'base_salary' => 50000,
+            'gross_salary' => 50000,
+            'net_salary' => 50000,
+            'status' => 'approved',
+            'approved_at' => now(),
+            'approved_by' => $this->adminUser()->id,
+        ]);
 
         StaffTransaction::create([
             'staff_id' => $staff->id,

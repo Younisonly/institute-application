@@ -220,6 +220,19 @@ class StaffPayrollPartialCutsAndAttendanceTest extends TestCase
 
         $this->assertEquals(20000.00, $staff->outstanding_advance);
 
+        \App\Models\StaffPayrollPeriod::create([
+            'staff_id' => $staff->id,
+            'salary_month' => '2026-03',
+            'start_date' => '2026-03-01',
+            'end_date' => '2026-03-31',
+            'base_salary' => 80000,
+            'gross_salary' => 80000,
+            'net_salary' => 80000,
+            'status' => 'approved',
+            'approved_at' => now(),
+            'approved_by' => null,
+        ]);
+
         // Pay March Salary with 10,000 YER advance deduction
         $salaryCut = StaffTransaction::create([
             'staff_id' => $staff->id,
@@ -237,6 +250,7 @@ class StaffPayrollPartialCutsAndAttendanceTest extends TestCase
 
     public function test_voiding_salary_transaction_reverses_journal_and_recalculates_status(): void
     {
+        $user = \App\Models\User::factory()->create();
         $job = JobTitle::create(['name' => 'Assistant']);
         $staff = Staff::create([
             'name' => 'Mona Assistant',
@@ -244,6 +258,19 @@ class StaffPayrollPartialCutsAndAttendanceTest extends TestCase
             'salary_type' => 'monthly',
             'salary_value' => 60000.00,
             'status' => 'active',
+        ]);
+
+        \App\Models\StaffPayrollPeriod::create([
+            'staff_id' => $staff->id,
+            'salary_month' => '2026-04',
+            'start_date' => '2026-04-01',
+            'end_date' => '2026-04-30',
+            'base_salary' => 60000,
+            'gross_salary' => 60000,
+            'net_salary' => 60000,
+            'status' => 'approved',
+            'approved_at' => now(),
+            'approved_by' => $user->id,
         ]);
 
         $cut = StaffTransaction::create([

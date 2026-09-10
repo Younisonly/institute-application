@@ -18,6 +18,16 @@ class CurriculumRelationManager extends RelationManager
 {
     protected static string $relationship = 'curriculum';
 
+    public static function getModelLabel(): string
+    {
+        return __('general.curriculum_item');
+    }
+
+    public static function getPluralModelLabel(): string
+    {
+        return __('general.curriculum');
+    }
+
     public static function getTitle(Model $ownerRecord, string $pageClass): string
     {
         return __('general.curriculum');

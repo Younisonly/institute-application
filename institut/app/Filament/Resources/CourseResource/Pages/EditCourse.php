@@ -40,7 +40,7 @@ class EditCourse extends EditRecord
                         Notification::make()->title(__('general.saved'))->success()->send();
                         $this->refreshFormData(['is_active']);
                     })
-                    ->visible(fn (Course $record) => $record->is_active),
+                    ->visible(fn (?Course $record) => $record?->is_active ?? false),
             ])->label(__('general.actions'))->icon('heroicon-m-ellipsis-vertical'),
             
             Actions\DeleteAction::make(),

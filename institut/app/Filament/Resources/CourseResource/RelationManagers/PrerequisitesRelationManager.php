@@ -15,6 +15,16 @@ class PrerequisitesRelationManager extends RelationManager
 {
     protected static string $relationship = 'prerequisites';
 
+    public static function getModelLabel(): string
+    {
+        return __('general.prerequisite');
+    }
+
+    public static function getPluralModelLabel(): string
+    {
+        return __('general.prerequisites');
+    }
+
     public static function getTitle(Model $ownerRecord, string $pageClass): string
     {
         return __('general.prerequisites');

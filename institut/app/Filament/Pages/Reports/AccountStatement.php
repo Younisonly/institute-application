@@ -64,7 +64,7 @@ class AccountStatement extends Page implements HasForms, HasTable
             'account_id' => request()->integer('account_id') ?: null,
             'party_type' => request()->string('party_type')->toString() ?: '',
             'party_id' => request()->integer('party_id') ?: null,
-            'staff_statement_mode' => request()->string('staff_statement_mode')->toString() ?: 'advances',
+            'staff_statement_mode' => request()->string('staff_statement_mode')->toString() ?: 'comprehensive',
             'from' => request('from'),
             'to' => request('to'),
         ]);
@@ -113,10 +113,10 @@ class AccountStatement extends Page implements HasForms, HasTable
                 Select::make('staff_statement_mode')->native(false)
                     ->label(__('general.staff_statement_mode'))
                     ->options([
-                        'advances' => __('general.staff_advances_statement'),
                         'comprehensive' => __('general.staff_comprehensive_statement'),
+                        'advances' => __('general.staff_advances_statement'),
                     ])
-                    ->default('advances')
+                    ->default('comprehensive')
                     ->hidden(fn (Get $get): bool => $get('party_type') !== 'staff')
                     ->live()
                     ->afterStateUpdated(function (): void {

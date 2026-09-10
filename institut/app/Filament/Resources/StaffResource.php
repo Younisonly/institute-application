@@ -152,6 +152,23 @@ class StaffResource extends Resource
                                     ->label(__('general.is_teacher'))
                                     ->default(false)
                                     ->live(),
+                                Select::make('user_id')
+                                    ->native(false)
+                                    ->label(__('general.user_account'))
+                                    ->options(fn (?Staff $record): array => \App\Models\User::query()
+                                        ->where(fn ($q) => $q->whereNull('staff_id')->when($record !== null, fn ($q2) => $q2->orWhere('staff_id', $record->id)))
+                                        ->pluck('name', 'id')
+                                        ->all())
+                                    ->searchable()
+                                    ->preload()
+                                    ->nullable()
+                                    ->loadStateFromRelationshipsUsing(fn (Staff $record, Select $component) => $component->state($record->user?->id))
+                                    ->saveRelationshipsUsing(function (Staff $record, mixed $state): void {
+                                        \App\Models\User::query()->where('staff_id', $record->id)->update(['staff_id' => null]);
+                                        if ($state) {
+                                            \App\Models\User::query()->where('id', $state)->update(['staff_id' => $record->id]);
+                                        }
+                                    }),
                             ]),
                         Section::make(__('general.photo'))
                             ->columnSpan(1)
@@ -242,6 +259,11 @@ class StaffResource extends Resource
             ])
             ->actions([
                 Tables\Actions\ViewAction::make(),
+                Tables\Actions\Action::make('view_attendance_history')
+                    ->label(__('general.attendance_history'))
+                    ->icon('heroicon-o-clock')
+                    ->color('info')
+                    ->url(fn (Staff $record): string => StaffAttendanceResource::getUrl('employee-history', ['record' => $record->id])),
                 Tables\Actions\EditAction::make(),
                 Tables\Actions\DeleteAction::make(),
                 Tables\Actions\RestoreAction::make()->label(__('general.restore')),
@@ -259,6 +281,7 @@ class StaffResource extends Resource
     public static function getRelations(): array
     {
         return [
+            StaffResource\RelationManagers\PayrollPeriodsRelationManager::class,
             DocumentsRelationManager::class,
             TransactionsRelationManager::class,
             StaffResource\RelationManagers\TeacherAssignmentsRelationManager::class,

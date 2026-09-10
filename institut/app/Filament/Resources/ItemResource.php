@@ -109,6 +109,11 @@ class ItemResource extends Resource
                     ->required()
                     ->default(5)
                     ->minValue(0),
+                TextInput::make('min_stock_qty')
+                    ->label(__('general.min_stock_qty'))
+                    ->numeric()->maxValue(999999999999)
+                    ->nullable()
+                    ->minValue(0),
                 MoneyInput::make('purchase_price')
                     ->label(__('general.purchase_price'))
                     ->minValue(0)
@@ -133,6 +138,7 @@ class ItemResource extends Resource
                     ->badge()
                     ->color(fn (Item $record): string => $record->isLowStock() ? 'danger' : 'success')
                     ->formatStateUsing(fn (int $state, Item $record): string => $record->isLowStock() ? $state.' • '.__('general.low_stock') : (string) $state),
+                TextColumn::make('min_stock_qty')->label(__('general.min_stock_qty'))->placeholder('—')->toggleable(),
                 TextColumn::make('low_stock_threshold')->label(__('general.low_stock_threshold'))->toggleable(),
                 TextColumn::make('purchase_price')
                     ->label(__('general.purchase_price'))

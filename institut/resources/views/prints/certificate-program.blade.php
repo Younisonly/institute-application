@@ -112,8 +112,13 @@
             <span>{{ __('general.issue_date') }}: {{ $certificate->issue_date->format('d/m/Y') }}</span>
         </div>
 
-        <div class="verify-note">
-            {{ __('general.verify_with_code', ['code' => $certificate->verification_code]) }}
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 12px; padding: 0 10px;">
+            <div class="verify-note">
+                {{ __('general.verify_with_code', ['code' => $certificate->verification_code]) }}
+            </div>
+            <div>
+                {!! \SimpleSoftwareIO\QrCode\Facades\QrCode::size(64)->generate(route('certificates.verify', ['code' => $certificate->verification_code])) !!}
+            </div>
         </div>
 
         <div class="signature-row">

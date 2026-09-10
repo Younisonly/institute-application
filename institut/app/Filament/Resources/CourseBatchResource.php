@@ -395,11 +395,18 @@ class CourseBatchResource extends Resource
                     ->label(__('general.record_teacher_attendance'))
                     ->icon('heroicon-o-clock')
                     ->color('info')
-                    ->form(fn (CourseBatch $record): array => [
+                    ->modalSubmitActionLabel(__('general.save'))
+                    ->form(fn (?CourseBatch $record): array => [
                         DatePicker::make('date')
                             ->label(__('general.date'))
                             ->default(now())
                             ->required(),
+                        Select::make('actual_teacher_id')
+                            ->label(__('general.teacher'))
+                            ->options(Staff::query()->where('is_teacher', true)->where('status', 'active')->pluck('name', 'id'))
+                            ->default($record?->teacher_id)
+                            ->required()
+                            ->searchable(),
                         Select::make('status')
                             ->label(__('general.status'))
                             ->options([
@@ -414,40 +421,50 @@ class CourseBatchResource extends Resource
                         TextInput::make('hours_worked')
                             ->label(__('general.hours_worked'))
                             ->numeric()
-                            ->default($record->daily_hours ?? 2.00)
+                            ->default($record?->daily_hours ?? 2.00)
                             ->required(),
                         Textarea::make('notes')
                             ->label(__('general.notes')),
                     ])
                     ->action(function (CourseBatch $record, array $data): void {
-                        if (! $record->teacher_id) {
-                            Notification::make()
-                                ->title(__('general.no_teacher_assigned'))
-                                ->warning()
-                                ->send();
-                            return;
-                        }
-
-                        StaffAttendance::updateOrCreate(
-                            [
-                                'staff_id' => $record->teacher_id,
+                        try {
+                            $teacherId = (int) $data['actual_teacher_id'];
+                            $att = app(AttendanceManagementService::class)->saveAttendance([
+                                'staff_id' => $teacherId,
                                 'course_batch_id' => $record->id,
+                                'primary_teacher_id' => $record->teacher_id ?? $teacherId,
+                                'actual_teacher_id' => $teacherId,
                                 'date' => $data['date'],
-                            ],
-                            [
                                 'status' => $data['status'],
                                 'hours_worked' => $data['hours_worked'],
+                                'planned_hours' => $record->daily_hours ?? 2.00,
                                 'notes' => $data['notes'] ?? null,
-                                'created_by' => Auth::id(),
-                            ]
-                        );
+                            ]);
 
-                        Notification::make()
-                            ->title(__('general.saved'))
-                            ->success()
-                            ->send();
+                            if ($att->getAttribute('is_closed_payroll_edit')) {
+                                Notification::make()
+                                    ->title(__('general.attendance_saved_retroactive_notice'))
+                                    ->warning()
+                                    ->send();
+                            } elseif ($att->getAttribute('was_already_recorded')) {
+                                Notification::make()
+                                    ->title(__('general.attendance_already_recorded_updated'))
+                                    ->info()
+                                    ->send();
+                            } else {
+                                Notification::make()
+                                    ->title(__('general.saved'))
+                                    ->success()
+                                    ->send();
+                            }
+                        } catch (\Throwable $e) {
+                            Notification::make()
+                                ->title($e->getMessage())
+                                ->danger()
+                                ->send();
+                        }
                     })
-                    ->visible(fn (?CourseBatch $record): bool => $record !== null && $record->teacher_id !== null),
+                    ->visible(fn (?CourseBatch $record): bool => $record !== null && $record->status === 'in_progress'),
                 Tables\Actions\Action::make('completeBatch')
                     ->label(__('general.complete_batch'))
                     ->icon('heroicon-o-academic-cap')

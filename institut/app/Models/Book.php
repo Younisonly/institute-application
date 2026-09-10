@@ -14,13 +14,14 @@ class Book extends Model
 
     protected $fillable = [
         'title', 'author', 'course_id', 'supplier_id', 'buy_price', 'sale_price',
-        'stock_qty', 'low_stock_threshold', 'is_active', 'details', 'edition', 'isbn',
+        'stock_qty', 'min_stock_qty', 'low_stock_threshold', 'is_active', 'details', 'edition', 'isbn',
     ];
 
     protected function casts(): array
     {
         return [
             'stock_qty' => 'integer',
+            'min_stock_qty' => 'decimal:2',
             'low_stock_threshold' => 'integer',
             'buy_price' => 'decimal:2',
             'sale_price' => 'decimal:2',
@@ -51,11 +52,16 @@ class Book extends Model
 
     public function isLowStock(): bool
     {
-        return $this->stock_qty <= $this->low_stock_threshold;
+        $threshold = $this->min_stock_qty !== null ? (float) $this->min_stock_qty : (float) $this->low_stock_threshold;
+
+        return (float) $this->stock_qty <= $threshold;
     }
 
     public function scopeWithLowStock(Builder $query): Builder
     {
-        return $query->whereColumn('stock_qty', '<=', 'low_stock_threshold')->where('is_active', true);
+        return $query->where(function (Builder $q) {
+            $q->where(fn (Builder $q2) => $q2->whereNotNull('min_stock_qty')->whereColumn('stock_qty', '<=', 'min_stock_qty'))
+              ->orWhere(fn (Builder $q3) => $q3->whereNull('min_stock_qty')->whereColumn('stock_qty', '<=', 'low_stock_threshold'));
+        })->where('is_active', true);
     }
 }

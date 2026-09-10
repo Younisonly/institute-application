@@ -18,6 +18,16 @@ class TeacherAssignmentsRelationManager extends RelationManager
 {
     protected static string $relationship = 'teacherAssignments';
 
+    public static function getModelLabel(): string
+    {
+        return __('general.teacher_assignment');
+    }
+
+    public static function getPluralModelLabel(): string
+    {
+        return __('general.teacher_assignments_history');
+    }
+
     public static function getTitle(\Illuminate\Database\Eloquent\Model $ownerRecord, string $pageClass): string
     {
         return __('general.teacher_assignments_history');

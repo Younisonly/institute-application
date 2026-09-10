@@ -99,6 +99,19 @@ class FinancialAuditPhase2Test extends TestCase
 
         $month = now()->format('Y-m');
 
+        \App\Models\StaffPayrollPeriod::create([
+            'staff_id' => $staff->id,
+            'salary_month' => $month,
+            'start_date' => $month.'-01',
+            'end_date' => $month.'-28',
+            'base_salary' => 100000,
+            'gross_salary' => 100000,
+            'net_salary' => 100000,
+            'status' => 'approved',
+            'approved_at' => now(),
+            'approved_by' => $this->adminUser()->id,
+        ]);
+
         Livewire::test(\App\Filament\Pages\Reports\SalarySheetReport::class)
             ->set('data.month', $month)
             ->callAction('recordSalaries', data: [

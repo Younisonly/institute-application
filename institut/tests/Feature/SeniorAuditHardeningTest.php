@@ -114,6 +114,19 @@ class SeniorAuditHardeningTest extends TestCase
     {
         $staff = Staff::create(['name' => 'Employee One', 'phone' => '771111222', 'salary_type' => 'monthly', 'salary_value' => 30000, 'status' => 'active']);
 
+        \App\Models\StaffPayrollPeriod::create([
+            'staff_id' => $staff->id,
+            'salary_month' => '2026-03',
+            'start_date' => '2026-03-01',
+            'end_date' => '2026-03-31',
+            'base_salary' => 30000,
+            'gross_salary' => 30000,
+            'net_salary' => 30000,
+            'status' => 'approved',
+            'approved_at' => now(),
+            'approved_by' => $this->adminUser->id,
+        ]);
+
         StaffTransaction::create([
             'staff_id' => $staff->id,
             'type' => 'salary',

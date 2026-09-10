@@ -660,7 +660,7 @@ class ReportService
         $sides = match ($partyType) {
             'student' => ['charge' => [1, 1], 'payment' => [-1, 1], 'refund' => [1, 1]],
             'staff' => $staffMode === 'comprehensive'
-                ? ['advance' => [1, 1], 'salary' => [1, 1], 'repayment' => [-1, 1], 'deduction' => [-1, 1], 'salary_entitlement' => [-1, 1]]
+                ? ['advance' => [1, 1], 'salary' => [1, 1], 'deduction' => [0, 1], 'repayment' => [-1, 1], 'salary_entitlement' => [-1, 1]]
                 : ['advance' => [1, 1], 'repayment' => [-1, 1], 'deduction' => [-1, 1]],
             'supplier' => ['purchase' => [-1, -1], 'payment' => [1, -1]],
             'other' => ['out' => [1, 1], 'in' => [-1, 1]],
@@ -837,10 +837,41 @@ class ReportService
         }
 
         $rows = collect();
-        $entitlementIdCounter = 2_000_000_000;
+
+        // 1. Approved Salary Entitlements (StaffPayrollPeriod records)
+        $periodsQuery = \App\Models\StaffPayrollPeriod::query()
+            ->where('staff_id', $partyId)
+            ->whereIn('status', ['approved', 'partially_paid', 'paid']);
+
+        if ($from) {
+            $periodsQuery->whereDate('start_date', '>=', $from->toDateString());
+        }
+        if ($to) {
+            $periodsQuery->whereDate('start_date', '<=', $to->toDateString());
+        }
+
+        $periods = $periodsQuery->get();
+
+        foreach ($periods as $p) {
+            $date = $p->approved_at ? CarbonImmutable::parse($p->approved_at) : CarbonImmutable::parse($p->start_date);
+            $rows->push([
+                'id' => $p->id + 2_000_000_000,
+                'type' => 'salary_entitlement',
+                'date' => $date,
+                'description' => __('general.salary_entitlement') . ($p->salary_month ? " — {$p->salary_month}" : ''),
+                'reference' => 'payroll-' . $p->salary_month . '-' . $p->staff_id,
+                'counterparty' => __('general.account_type_expense'),
+                'amount' => (float) $p->net_salary,
+                'balanceDirection' => 1,
+            ]);
+        }
+
+        // 2. Staff Transactions (Payouts, Advances, Deductions, Repayments)
+        $entitlementIdCounter = 1_000_000_000;
+        $coveredMonths = $periods->pluck('salary_month')->filter()->all();
 
         foreach ($transactions as $t) {
-            if ($t->type === 'salary') {
+            if ($t->type === 'salary' && ! in_array($t->salary_month, $coveredMonths, true)) {
                 $rows->push([
                     'id' => $entitlementIdCounter++,
                     'type' => 'salary_entitlement',
@@ -848,7 +879,7 @@ class ReportService
                     'description' => __('general.salary_entitlement').($t->salary_month ? " — {$t->salary_month}" : ''),
                     'reference' => $reference($t),
                     'counterparty' => __('general.account_type_expense'),
-                    'amount' => (float) $t->amount,
+                    'amount' => (float) $t->amount + (float) ($t->advance_deduction_amount ?? 0),
                     'balanceDirection' => 1,
                 ]);
             }

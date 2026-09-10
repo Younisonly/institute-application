@@ -1,5 +1,6 @@
 @php
     $today = \Carbon\Carbon::today()->format('Y-m-d');
+    $currentAttendanceMap = $this->getStudentAttendanceMap($registration->id);
 @endphp
 <div class="space-y-4" x-data="{ 
     searchDate: '',
@@ -29,9 +30,9 @@
             return;
         }
         if (this.actionType === 'mark') {
-            @this.call('markAttendance', this.actionArgs.registration_id, this.actionArgs.date, this.actionArgs.status, this.noteText, this.reasonText);
+            $wire.markAttendance(this.actionArgs.registration_id, this.actionArgs.date, this.actionArgs.status, this.noteText, this.reasonText);
         } else if (this.actionType === 'edit') {
-            @this.call('editAttendanceNoteAlpine', this.actionArgs.record_id, this.noteText, this.reasonText);
+            $wire.editAttendanceNoteAlpine(this.actionArgs.record_id, this.noteText, this.reasonText);
         }
         $dispatch('close-modal', { id: 'reason-modal' });
     }
@@ -65,7 +66,7 @@
             <tbody class="divide-y divide-gray-200 dark:divide-white/10">
                 @forelse($validDates as $date)
                     @php
-                        $record = $attendanceMap[$date] ?? null;
+                        $record = $currentAttendanceMap[$date] ?? null;
                         $status = $record['status'] ?? null;
                         
                         $statusColor = match($status) {

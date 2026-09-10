@@ -141,8 +141,87 @@ class InstituteSettings extends Page implements HasForms
     {
         return [
             $this->downloadBackupAction(),
+            $this->restoreBackupAction(),
             $this->advanceMonthAction(),
+            $this->seedDemoDataAction(),
         ];
+    }
+
+    public function seedDemoDataAction(): Action
+    {
+        return Action::make('seedDemoData')
+            ->label(__('general.seed_demo_data'))
+            ->icon('heroicon-o-sparkles')
+            ->color('info')
+            ->requiresConfirmation()
+            ->modalHeading(__('general.seed_demo_data_confirm_title'))
+            ->modalDescription(__('general.seed_demo_data_warning'))
+            ->authorize(fn (): bool => auth()->user()?->hasRole('admin') ?? false)
+            ->action(function (): void {
+                \Illuminate\Support\Facades\Artisan::call('db:seed', [
+                    '--class' => 'Database\\Seeders\\DemoDataSeeder',
+                    '--force' => true,
+                ]);
+
+                Notification::make()
+                    ->title(__('general.seed_demo_data_success'))
+                    ->success()
+                    ->send();
+            });
+    }
+
+    public function restoreBackupAction(): Action
+    {
+        return Action::make('restoreBackup')
+            ->label(__('general.restore_backup'))
+            ->icon('heroicon-o-arrow-up-tray')
+            ->color('danger')
+            ->requiresConfirmation()
+            ->modalHeading(__('general.restore_backup_confirm_title'))
+            ->modalDescription(__('general.restore_backup_warning'))
+            ->authorize(fn (): bool => auth()->user()?->hasRole('admin') ?? false)
+            ->form([
+                FileUpload::make('backup_file')
+                    ->label(__('general.select_backup_file'))
+                    ->disk('local')
+                    ->directory('backups')
+                    ->required(),
+            ])
+            ->action(function (array $data): void {
+                $filePath = storage_path('app/' . $data['backup_file']);
+
+                if (! file_exists($filePath)) {
+                    Notification::make()->title(__('general.restore_failed'))->danger()->send();
+
+                    return;
+                }
+
+                $db = config('database.connections.mysql.database');
+                $user = config('database.connections.mysql.username');
+                $pass = config('database.connections.mysql.password');
+                $host = config('database.connections.mysql.host');
+
+                $command = sprintf(
+                    'mysql --host=%s --user=%s %s %s < %s 2>/dev/null',
+                    escapeshellarg($host),
+                    escapeshellarg($user),
+                    $pass !== '' ? '--password='.escapeshellarg($pass) : '',
+                    escapeshellarg($db),
+                    escapeshellarg($filePath)
+                );
+
+                $result = Process::run($command);
+
+                if (! $result->successful()) {
+                    Notification::make()->title(__('general.restore_failed'))->danger()->send();
+
+                    return;
+                }
+
+                \Illuminate\Support\Facades\Artisan::call('cache:clear');
+
+                Notification::make()->title(__('general.restore_success'))->success()->send();
+            });
     }
 
     public function advanceMonthAction(): Action

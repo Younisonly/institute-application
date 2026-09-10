@@ -88,3 +88,9 @@ NOT in scope: librarian, transport, multi-currency, timetables.
 - `institut/app/Filament/Pages/InstituteSettings.php` — settings (receipt counter, currency label)
 - `institut/app/Services/ReceiptNumberService.php` — atomic sequential receipts
 - `PLAN.md` — living feature plan (update at session end)
+تفاصيل التقرير والتحقق موجودة في ملف 
+walkthrough.md
+ وتم تحديث وتوقيع 
+
+PLAN.md
+.
