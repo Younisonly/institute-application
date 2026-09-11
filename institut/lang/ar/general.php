@@ -1285,6 +1285,8 @@ return array (
   'wed' => 'الأربعاء',
   'welcome' => 'مرحبًا',
   'welcome_back' => 'مرحباً بك',
+  'welcome_to_tanzim' => 'مرحباً بك في تنظيم لإدارة المعاهد',
+  'login_to_continue' => 'يرجى تسجيل الدخول للمتابعة',
   'login_subtitle' => 'يرجى تسجيل الدخول للوصول إلى لوحة التحكم',
   'demo_credentials_hint' => 'بيانات الدخول الافتراضية للنظام',
   'click_to_fill_demo' => 'اضغط هنا لتعبئة البيانات تلقائياً',

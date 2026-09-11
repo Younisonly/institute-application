@@ -7,13 +7,4 @@ use Filament\Pages\Auth\Login as BaseLogin;
 class Login extends BaseLogin
 {
     protected static string $view = 'filament.pages.auth.login';
-
-    public function fillDemoCredentials(): void
-    {
-        $this->form->fill([
-            'email' => 'admin@institute.local',
-            'password' => 'admin123',
-            'remember' => true,
-        ]);
-    }
 }

@@ -1285,6 +1285,8 @@ return array (
   'wed' => 'Wed',
   'welcome' => 'Welcome',
   'welcome_back' => 'Welcome Back',
+  'welcome_to_tanzim' => 'Welcome to Tanzim for Institutes Management',
+  'login_to_continue' => 'Please log in to continue',
   'login_subtitle' => 'Please sign in to access your dashboard',
   'demo_credentials_hint' => 'Default System Login Credentials',
   'click_to_fill_demo' => 'Click to auto-fill demo credentials',
