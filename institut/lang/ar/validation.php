@@ -172,6 +172,9 @@ return array (
   'required_if_declined' => 'الخانة :attribute مطلوبة عندما يكون :other مرفوضاً',
   'attributes' => 
   array (
+    'print_report' => 'طباعة التقرير',
+    'sessions_modal' => 'تقرير جلسات الدفعة',
+    'view_sessions' => 'تفاصيل الجلسات',
     'total_actual_hours' => 'إجمالي الساعات الفعلية',
     'teaching_sessions_count' => 'عدد الجلسات',
     'absence_warning' => 'أهلية الامتحان',

@@ -172,6 +172,9 @@ return array (
   ),
   'attributes' => 
   array (
+    'print_report' => 'Print Report',
+    'sessions_modal' => 'Batch Sessions Modal',
+    'view_sessions' => 'Sessions Detail',
     'total_actual_hours' => 'Total Actual Hours',
     'teaching_sessions_count' => 'Sessions Count',
     'absence_warning' => 'Exam Eligibility',
