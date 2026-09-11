@@ -172,6 +172,7 @@ return array (
   'required_if_declined' => 'الخانة :attribute مطلوبة عندما يكون :other مرفوضاً',
   'attributes' => 
   array (
+    'total_actual_hours' => 'إجمالي الساعات الفعلية',
     'teaching_sessions_count' => 'عدد الجلسات',
     'absence_warning' => 'أهلية الامتحان',
     'absent_count' => 'عدد الغيابات',

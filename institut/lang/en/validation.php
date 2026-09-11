@@ -172,6 +172,7 @@ return array (
   ),
   'attributes' => 
   array (
+    'total_actual_hours' => 'Total Actual Hours',
     'teaching_sessions_count' => 'Sessions Count',
     'absence_warning' => 'Exam Eligibility',
     'absent_count' => 'Absence Count',
