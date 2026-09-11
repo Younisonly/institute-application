@@ -1,4 +1,8 @@
 <x-filament-panels::page.simple>
+    @php
+        $institute = \App\Models\InstituteSetting::current();
+    @endphp
+
     <script>
         (function() {
             const theme = localStorage.getItem('theme') || 'system';
@@ -53,8 +57,21 @@
         }
     </style>
 
+    <!-- Language Switcher Pill -->
+    <div class="mb-4 flex justify-end">
+        <form action="{{ route('locale.switch') }}" method="POST" class="inline-flex items-center rounded-lg bg-gray-100 p-1 dark:bg-gray-800 ring-1 ring-gray-950/5 dark:ring-white/10">
+            @csrf
+            <button type="submit" name="locale" value="ar" class="px-2.5 py-1 text-xs font-bold rounded-md transition-colors {{ app()->getLocale() === 'ar' ? 'bg-white text-primary-600 shadow-xs dark:bg-gray-700 dark:text-primary-400' : 'text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200' }}">
+                العربية
+            </button>
+            <button type="submit" name="locale" value="en" class="px-2.5 py-1 text-xs font-bold rounded-md transition-colors {{ app()->getLocale() === 'en' ? 'bg-white text-primary-600 shadow-xs dark:bg-gray-700 dark:text-primary-400' : 'text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200' }}">
+                English
+            </button>
+        </form>
+    </div>
+
     <x-slot name="heading">
-        {{ __('general.welcome_to_tanzim') }}
+        {{ __('general.welcome_to_institute', ['institute' => $institute->localized_name]) }}
     </x-slot>
 
     <x-slot name="subheading">
