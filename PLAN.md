@@ -90,6 +90,7 @@ See AGENTS.md for conventions and non-negotiable business rules.
 - [x] Print template review (receipts, ID cards, statements) in both languages ✅ done 2026-09-03
 - [x] Empty states, seed demo data toggle ✅ done 2026-09-03 (322/322 tests passing, 0 audit findings)
 - [x] Fix teacher attendance registration buttons, modal submit action labels to Save (حفظ), fillForm state hydration, modal updates, edit record matching, clean batch option labels (removed duplicate course & teacher names), alternative running batch selection, TeachingSessionObserver role gates, duplicate lang key removal, live existing attendance hint on date picker, existing attendance update info notification, allow authorized users (admin/accountant/registrar) retroactive edits for closed payroll periods with audit log tracking, and refactor TeachingSessionResource to disable adding, list all CourseBatch records ordered by start_date desc with slide-over days report modal, single day expandable details, and printable batch teaching report ✅ done 2026-09-10 (27/27 attendance tests pass, 164 total suite tests pass, audit 0 findings)
+- [x] Re-make Teaching Sessions Report into a dedicated sub-page (`/{record}/sessions` -> `ViewTeachingSessions`) with native Filament table (`InteractsWithTable` + `HasTable`), full dark theme awareness, ambient glow aesthetics, 5 KPI analytical stat cards, completion % progress bar, substitution ratio, date range & teacher filters, modal CRUD session actions, and updated bilingual print view layout with supervisor signatures ✅ done 2026-09-12 (322/322 tests pass, audit 0 findings)
 - [x] Backup restore flow ✅ done 2026-09-03
 - [ ] Final smoke test: migrate fresh, boot, log in, run core flows
 
@@ -1336,3 +1337,4 @@ Configured immediate table refresh when selecting an account or party without re
 
 
 
+- [x] Remove language switcher from login screen & add welcome message (نظام تنظيم) ✅ done 2026-09-11

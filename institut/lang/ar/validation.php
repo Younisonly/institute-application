@@ -175,6 +175,8 @@ return array (
     'print_report' => 'طباعة التقرير',
     'sessions_modal' => 'تقرير جلسات الدفعة',
     'view_sessions' => 'تفاصيل الجلسات',
+    'back' => 'رجوع',
+    'record_session' => 'تسجيل جلسة جديدة',
     'total_actual_hours' => 'إجمالي الساعات الفعلية',
     'teaching_sessions_count' => 'عدد الجلسات',
     'absence_warning' => 'أهلية الامتحان',

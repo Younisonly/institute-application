@@ -39,6 +39,11 @@ class EmployeeAttendanceHistory extends ViewRecord implements HasTable
         return $this->record->name.' — '.__('general.attendance_history');
     }
 
+    public function getHeading(): string|\Illuminate\Contracts\Support\Htmlable
+    {
+        return __('general.attendance_history');
+    }
+
     public function table(Table $table): Table
     {
         return $table

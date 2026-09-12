@@ -44,7 +44,10 @@ class BatchAttendance extends Page implements HasForms, HasTable
 
     public function mount(): void
     {
-        $this->form->fill();
+        $batchId = request()->integer('batch');
+        $this->form->fill(
+            $batchId > 0 ? ['course_batch_id' => $batchId] : []
+        );
     }
 
     public static function getNavigationGroup(): string

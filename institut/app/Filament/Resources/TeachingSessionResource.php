@@ -159,18 +159,7 @@ class TeachingSessionResource extends Resource
                     ->label(__('general.sessions_detail'))
                     ->icon('heroicon-o-eye')
                     ->color('info')
-                    ->slideOver()
-                    ->modalWidth(MaxWidth::SevenExtraLarge)
-                    ->modalHeading(fn (CourseBatch $record): string => __('general.sessions_report').' - '.$record->name)
-                    ->modalSubmitAction(false)
-                    ->modalCancelActionLabel(__('general.close'))
-                    ->infolist([
-                        InfoSection::make()
-                            ->schema([
-                                ViewEntry::make('sessions_modal')
-                                    ->view('filament.resources.teaching-sessions.batch-sessions-modal'),
-                            ]),
-                    ]),
+                    ->url(fn (CourseBatch $record): string => static::getUrl('view', ['record' => $record])),
                 Tables\Actions\Action::make('print_report')
                     ->label(__('general.print_report'))
                     ->icon('heroicon-o-printer')
@@ -185,6 +174,7 @@ class TeachingSessionResource extends Resource
     {
         return [
             'index' => Pages\ListTeachingSessions::route('/'),
+            'view' => Pages\ViewTeachingSessions::route('/{record}/sessions'),
         ];
     }
 }

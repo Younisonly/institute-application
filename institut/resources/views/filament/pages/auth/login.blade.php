@@ -16,8 +16,13 @@
 
     <style>
         /* Hide duplicate Filament brand header above card */
-        .fi-simple-header, .fi-simple-brand {
+        .fi-simple-brand {
             display: none !important;
+        }
+
+        /* Move icon to the top */
+        #login-icon-container {
+            order: -1;
         }
 
         /* Eliminate browser autofill yellow overlay in Light & Dark modes */
@@ -57,30 +62,19 @@
         }
     </style>
 
-    <!-- Language Switcher Pill -->
-    <div class="mb-4 flex justify-end">
-        <form action="{{ route('locale.switch') }}" method="POST" class="inline-flex items-center rounded-lg bg-gray-100 p-1 dark:bg-gray-800 ring-1 ring-gray-950/5 dark:ring-white/10">
-            @csrf
-            <button type="submit" name="locale" value="ar" class="px-2.5 py-1 text-xs font-bold rounded-md transition-colors {{ app()->getLocale() === 'ar' ? 'bg-white text-primary-600 shadow-xs dark:bg-gray-700 dark:text-primary-400' : 'text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200' }}">
-                العربية
-            </button>
-            <button type="submit" name="locale" value="en" class="px-2.5 py-1 text-xs font-bold rounded-md transition-colors {{ app()->getLocale() === 'en' ? 'bg-white text-primary-600 shadow-xs dark:bg-gray-700 dark:text-primary-400' : 'text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200' }}">
-                English
-            </button>
-        </form>
-    </div>
+
 
     <x-slot name="heading">
-        {{ __('general.welcome_to_institute', ['institute' => $institute->localized_name]) }}
+        {{ __('general.welcome_to_tanzeem') }}
     </x-slot>
 
     <x-slot name="subheading">
-        {{ __('general.login_to_continue') }}
+        {{ __('general.tanzeem_description', ['institute' => $institute->localized_name]) }}
     </x-slot>
 
     {{ \Filament\Support\Facades\FilamentView::renderHook(\Filament\View\PanelsRenderHook::AUTH_LOGIN_FORM_BEFORE, scopes: $this->getRenderHookScopes()) }}
 
-    <div class="mb-6 flex flex-col items-center">
+    <div id="login-icon-container" class="mb-2 flex flex-col items-center">
         <div class="flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-tr from-sky-500 to-teal-400 text-white shadow-lg shadow-sky-500/30 ring-4 ring-sky-500/10 dark:shadow-sky-500/20 dark:ring-sky-400/20">
             <x-filament::icon icon="heroicon-o-academic-cap" class="h-9 w-9" />
         </div>
